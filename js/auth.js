@@ -1,0 +1,330 @@
+/**
+ * auth.js
+ * ---------------------------------------------------------------------------
+ * Autenticación y sesión de la Plataforma EDD Inter-Con (Beta 3).
+ *
+ * Sustituye el login simulado de beta 1/2 (empleado + perfil elegido a mano)
+ * por un flujo de dos pasos: número de empleado -> código temporal de un
+ * solo uso enviado "al correo" (simulado en modo demo, real vía n8n en modo
+ * API). Ver README, sección "Login (dos pasos)".
+ *
+ * Responsabilidades de este módulo (únicas, no se duplican en app.js):
+ *   - Solicitar código (requestCode) / validar código (verifyCode).
+ *   - Guardar y leer la sesión (token + usuario) en sessionStorage, bajo la
+ *     clave APP_CONFIG.sessionStorageKey.
+ *   - Expiración de sesión (por tiempo, o por 401 del backend en modo API).
+ *   - Cierre de sesión.
+ *   - Adaptar el usuario "con forma de API" (numeroEmpleado/nombreCompleto/
+ *     rol) a la forma interna que ya usa app.js desde beta 1
+ *     (empleado/nombre/perfil), para no tener que reescribir el resto de la
+ *     aplicación.
+ *
+ * Estructura de sesión guardada (igual en demo y en api, ver brief sección 5):
+ *   {
+ *     token: "TOKEN_TEMPORAL",
+ *     expiresAt: "2026-08-06T20:00:00.000Z",
+ *     user: { numeroEmpleado, nombreCompleto, rol }
+ *   }
+ * NO se guarda contraseña ni código temporal en ningún lado.
+ * ---------------------------------------------------------------------------
+ */
+
+(function (global) {
+  'use strict';
+
+  const ROL_INTERNO_A_API = { colaborador: 'Colaborador', lider: 'Líder', administrador: 'Administrador' };
+  const ROL_API_A_INTERNO = { 'colaborador': 'colaborador', 'líder': 'lider', 'lider': 'lider', 'administrador': 'administrador' };
+
+  function cfg() { return global.APP_CONFIG; }
+
+  // Estado efímero (solo vive mientras el usuario está en la pantalla B de
+  // login, entre "solicitar código" y "validar código"). No se persiste.
+  let pendiente = null; // { numeroEmpleado, requestId, maskedEmail, expiresAt }
+
+  function maskEmail(correo) {
+    if (!correo || correo.indexOf('@') === -1) return '***@***';
+    const [usuario, dominio] = correo.split('@');
+    const visible = usuario.slice(0, 1);
+    return visible + '***@' + dominio;
+  }
+
+  function generarTokenDemo() {
+    return 'DEMO-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
+  function generarRequestId() {
+    return 'REQ-' + Math.floor(100000 + Math.random() * 900000);
+  }
+
+  function esperar(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+
+  async function sha256Hex(value) {
+    if (!global.crypto || !global.crypto.subtle || !global.TextEncoder) {
+      throw new global.EDDApi.ApiError('unavailable', 'El acceso seguro no está disponible en este navegador.');
+    }
+    const bytes = new global.TextEncoder().encode(String(value));
+    const digest = await global.crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  // ===========================================================================
+  // PASO 1: SOLICITAR CÓDIGO
+  // ===========================================================================
+  async function requestCode(numeroEmpleado) {
+    numeroEmpleado = String(numeroEmpleado || '').trim();
+    if (!/^\d{4,10}$/.test(numeroEmpleado)) {
+      throw new global.EDDApi.ApiError('validation', 'Captura un número de empleado válido.');
+    }
+
+    if (cfg().mode === 'api') {
+      const resp = await global.EDDApi.authRequestCode(numeroEmpleado);
+      pendiente = {
+        numeroEmpleado,
+        requestId: resp.requestId,
+        maskedEmail: resp.maskedEmail || null,
+        expiresAt: Date.now() + cfg().codeValidityMinutes * 60000
+      };
+      return resp;
+    }
+
+    // Acceso estático restringido: se crea un desafío efímero sin revelar si
+    // el número existe. La validación de ambas credenciales ocurre en el paso
+    // siguiente y devuelve siempre un error genérico cuando no coinciden.
+    await esperar(250);
+    const requestId = generarRequestId();
+    pendiente = {
+      numeroEmpleado,
+      requestId,
+      maskedEmail: null,
+      expiresAt: Date.now() + cfg().codeValidityMinutes * 60000
+    };
+    return {
+      success: true,
+      message: 'Credenciales recibidas.',
+      maskedEmail: null,
+      requestId
+    };
+  }
+
+  function correoDeUsuarioDemo(numeroEmpleado) {
+    const col = global.EDDStorage.getColaborador(numeroEmpleado);
+    if (col && col.correoCorporativo) return col.correoCorporativo;
+    const lider = global.EDDStorage.getLider(numeroEmpleado);
+    if (lider && lider.correoCorporativo) return lider.correoCorporativo;
+    const admin = global.EDDData.ADMINISTRADORES.find((a) => a.empleado === String(numeroEmpleado));
+    if (admin && admin.correoCorporativo) return admin.correoCorporativo;
+    return null;
+  }
+
+  // ===========================================================================
+  // PASO 2: VALIDAR CÓDIGO
+  // ===========================================================================
+  async function verifyCode(numeroEmpleado, codigo) {
+    numeroEmpleado = String(numeroEmpleado || '').trim();
+    codigo = String(codigo || '').trim();
+    if (!/^\d{6}$/.test(codigo)) {
+      throw new global.EDDApi.ApiError('validation', 'El código debe tener 6 dígitos.');
+    }
+    if (!pendiente || pendiente.numeroEmpleado !== numeroEmpleado) {
+      throw new global.EDDApi.ApiError('validation', 'Primero solicita un código para este número de empleado.');
+    }
+    if (Date.now() > pendiente.expiresAt) {
+      throw new global.EDDApi.ApiError('expired', 'El código venció. Solicita uno nuevo.');
+    }
+
+    if (cfg().mode === 'api') {
+      const resp = await global.EDDApi.authVerifyCode(numeroEmpleado, codigo, pendiente.requestId);
+      guardarSesionDesdeApi(resp);
+      pendiente = null;
+      // /auth/me es la fuente autoritativa de identidad/capacidades. Si está
+      // disponible, enriquecemos la sesión inmediatamente después del OTP.
+      try { await refreshProfileFromApi(); } catch (e) { console.warn('EDDAuth: no fue posible hidratar /auth/me tras login.', e); }
+      return resp;
+    }
+
+    const access = (cfg().localDemoUsers || {})[numeroEmpleado];
+    const digest = await sha256Hex(numeroEmpleado + ':' + codigo);
+    if (!access || digest !== access.credentialHash) {
+      throw new global.EDDApi.ApiError('invalid_credentials', 'Usuario o contraseña incorrectos.');
+    }
+    const expiresIn = cfg().defaultSessionSeconds;
+    const session = {
+      token: generarTokenDemo(),
+      expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+      user: {
+        numeroEmpleado,
+        nombreCompleto: access.displayName,
+        rol: access.role,
+        puesto: access.position || '',
+        area: access.area || '',
+        capabilities: Object.assign({}, access.capabilities || {})
+      }
+    };
+    guardarSesion(session);
+    pendiente = null;
+    return { success: true, token: session.token, expiresIn, user: session.user };
+  }
+
+  async function loginLocalCredentials(numeroEmpleado, codigo) {
+    numeroEmpleado = String(numeroEmpleado || '').trim();
+    codigo = String(codigo || '').trim();
+    if (!/^\d{4,10}$/.test(numeroEmpleado) || !/^\d{6}$/.test(codigo)) {
+      throw new global.EDDApi.ApiError('invalid_credentials', 'Usuario o contraseña incorrectos.');
+    }
+    const access = (cfg().localDemoUsers || {})[numeroEmpleado];
+    const digest = await sha256Hex(numeroEmpleado + ':' + codigo);
+    if (!access || digest !== access.credentialHash) {
+      throw new global.EDDApi.ApiError('invalid_credentials', 'Usuario o contraseña incorrectos.');
+    }
+    const expiresIn = cfg().defaultSessionSeconds;
+    const session = {
+      token: generarTokenDemo(),
+      expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+      user: {
+        numeroEmpleado,
+        nombreCompleto: access.displayName,
+        rol: access.role,
+        puesto: access.position || '',
+        area: access.area || '',
+        capabilities: Object.assign({}, access.capabilities || {})
+      }
+    };
+    guardarSesion(session);
+    pendiente = null;
+    return { success: true, token: session.token, expiresIn, user: session.user };
+  }
+
+  function detalleUsuarioDemo(u) {
+    if (u.perfil === 'colaborador') { const c = global.EDDStorage.getColaborador(u.empleado); return { puesto: c ? c.puesto : '', area: c ? c.area : '' }; }
+    if (u.perfil === 'lider') { const l = global.EDDStorage.getLider(u.empleado); return { puesto: l ? l.puesto : '', area: l ? l.area : '' }; }
+    const a = global.EDDData.ADMINISTRADORES.find((x) => x.empleado === u.empleado);
+    return { puesto: a ? a.puesto : '', area: a ? a.area : '' };
+  }
+
+  function guardarSesionDesdeApi(resp) {
+    const payload = (resp && resp.data && resp.data.token) ? resp.data : (resp || {});
+    const expiresIn = payload.expiresIn || cfg().defaultSessionSeconds;
+    guardarSesion({
+      token: payload.token,
+      expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+      user: payload.user || {}
+    });
+  }
+
+  async function refreshProfileFromApi() {
+    if (cfg().mode !== 'api') return getSession();
+    const resp = await global.EDDApi.authMe();
+    const data = resp && resp.data ? resp.data : resp;
+    if (!data || !data.employee) return getSession();
+    const session = getSession();
+    if (!session) return null;
+    const emp = data.employee || {};
+    const rawCaps = data.capabilities || {};
+    const role = String(data.platformRole || session.user.rol || '').toLowerCase();
+    const caps = Object.assign({}, rawCaps, {
+      isAdmin: rawCaps.isAdmin === true || rawCaps.canAdminister === true || rawCaps.canCalibrate === true || role === 'administrador' || role === 'administrator' || role === 'admin',
+      canEvaluate: rawCaps.canEvaluate === true || rawCaps.canEvaluateTeam === true || emp.canEvaluate === true || emp.canEvaluateTeam === true || emp.puedeEvaluar === true,
+      canSelfEvaluate: rawCaps.canSelfEvaluate === true || rawCaps.canSelfAssess === true || rawCaps.requiresEvaluation === true || emp.canSelfEvaluate === true || emp.requiresEvaluation === true || emp.puedeAutoevaluarse === true || emp.requiereEvaluacion === true
+    });
+    session.user = Object.assign({}, session.user || {}, {
+      numeroEmpleado: emp.employeeId || session.user.numeroEmpleado,
+      nombreCompleto: emp.name || session.user.nombreCompleto,
+      correo: emp.email || '', puesto: emp.position || '', area: emp.area || '', direccion: emp.direction || '',
+      rol: data.platformRole || session.user.rol, capabilities: caps
+    });
+    guardarSesion(session);
+    return session;
+  }
+
+  // ===========================================================================
+  // SESIÓN (sessionStorage — no localStorage: no debe sobrevivir el cierre
+  // del navegador)
+  // ===========================================================================
+  function guardarSesion(session) {
+    try { sessionStorage.setItem(cfg().sessionStorageKey, JSON.stringify(session)); } catch (e) { console.error('EDDAuth: no se pudo guardar la sesión', e); }
+  }
+
+  function getSession() {
+    let raw;
+    try { raw = sessionStorage.getItem(cfg().sessionStorageKey); } catch (e) { return null; }
+    if (!raw) return null;
+    let session;
+    try { session = JSON.parse(raw); } catch (e) { clearSession(); return null; }
+    if (!session || !session.token || !session.expiresAt) { clearSession(); return null; }
+    if (Date.now() > new Date(session.expiresAt).getTime()) {
+      clearSession();
+      return null;
+    }
+    return session;
+  }
+
+  function clearSession() {
+    try { sessionStorage.removeItem(cfg().sessionStorageKey); } catch (e) { /* noop */ }
+  }
+
+  // Convierte la sesión (forma "de API") a la forma interna que usa app.js
+  // desde beta 1: { empleado, nombre, perfil }.
+  function getAppUser(session) {
+    session = session || getSession();
+    if (!session) return null;
+    const rawCaps = session.user.capabilities || {};
+    const caps = Object.assign({}, rawCaps, {
+      // canManage is a leader/team-management capability, not an Admin grant.
+      isAdmin: rawCaps.isAdmin === true || rawCaps.canAdminister === true || rawCaps.canCalibrate === true || rawCaps.canViewAllEvaluations === true,
+      canEvaluate: rawCaps.canEvaluate === true || rawCaps.canEvaluateTeam === true || rawCaps.canLead === true || rawCaps.isLeader === true,
+      canSelfEvaluate: rawCaps.canSelfEvaluate === true || rawCaps.canSelfAssess === true || rawCaps.canSelfEvaluation === true || rawCaps.requiresEvaluation === true
+    });
+    // Upgrade demo sessions created before accumulated profiles were added.
+    // API sessions remain governed exclusively by /auth/me capabilities.
+    if (cfg().mode === 'demo') {
+      const employeeId = String(session.user.numeroEmpleado || '');
+      const localAccess = (cfg().localDemoUsers || {})[employeeId];
+      if (localAccess && localAccess.capabilities) {
+        Object.assign(caps, localAccess.capabilities);
+      }
+    }
+    const rolNormalizado = String(session.user.rol || '').toLowerCase();
+    const perfil = caps.isAdmin ? 'administrador' : (caps.canEvaluate ? 'lider' : (ROL_API_A_INTERNO[rolNormalizado] || rolNormalizado || 'colaborador'));
+    if (perfil === 'administrador') caps.isAdmin = true;
+    if (perfil === 'lider') caps.canEvaluate = true;
+    if (perfil === 'colaborador') caps.canSelfEvaluate = true;
+    return {
+      empleado: session.user.numeroEmpleado,
+      nombre: session.user.nombreCompleto,
+      perfil,
+      puesto: session.user.puesto || '',
+      area: session.user.area || '',
+      direccion: session.user.direccion || '',
+      capabilities: caps
+    };
+  }
+
+  function getToken() {
+    const s = getSession();
+    return s ? s.token : null;
+  }
+
+  async function logout() {
+    const session = getSession();
+    clearSession();
+    pendiente = null;
+    if (cfg().mode === 'api' && session) {
+      // Best-effort: si el backend no responde, igual cerramos la sesión local.
+      try { await global.EDDApi.authLogout(); } catch (e) { console.warn('EDDAuth: logout remoto falló, se cierra la sesión local de todas formas.', e); }
+    }
+  }
+
+  function pendienteActual() { return pendiente; }
+  function limpiarPendiente() { pendiente = null; }
+
+  // Si el backend devuelve 401 en cualquier momento (token vencido/ inválido),
+  // api.js emite este evento; cerramos la sesión local para forzar login.
+  global.addEventListener(global.EDDApi ? global.EDDApi.EVENTO_SESION_EXPIRADA : 'edd:session-expired', () => {
+    clearSession();
+  });
+
+  global.EDDAuth = {
+    requestCode, verifyCode, loginLocalCredentials, getSession, clearSession, getAppUser, getToken, logout, refreshProfileFromApi,
+    maskEmail, pendienteActual, limpiarPendiente,
+    ROL_INTERNO_A_API
+  };
+})(window);
