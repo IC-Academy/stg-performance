@@ -221,9 +221,9 @@
 
     // --- Lectura y escritura disponibles hasta Calibration ----------------
     evaluationsMine(forceRefresh) { return requestEndpoint('evaluationsMine', null, { method: 'GET', cacheMs: 15000, forceRefresh: !!forceRefresh, timeoutMs: 12000 }); },
-    evaluationDetail() { return unavailableEndpoint('evaluationDetail'); },
+    evaluationDetail(evaluationId, forceRefresh) { return requestEndpoint('evaluationDetail', { evaluationId }, { method: 'GET', cacheMs: 15000, forceRefresh: !!forceRefresh, timeoutMs: 15000 }); },
     leaderTeam(forceRefresh) { return requestEndpoint('leaderTeam', null, { method: 'GET', cacheMs: 20000, forceRefresh: !!forceRefresh, timeoutMs: 12000 }); },
-    adminDashboard() { return unavailableEndpoint('adminDashboard'); },
+    adminDashboard(forceRefresh) { return requestEndpoint('adminDashboard', null, { method: 'GET', cacheMs: 15000, forceRefresh: !!forceRefresh, timeoutMs: 15000 }); },
     adminCalibration(forceRefresh) { return requestEndpoint('adminCalibration', null, { method: 'GET', cacheMs: 15000, forceRefresh: !!forceRefresh, timeoutMs: 15000 }); },
     async saveAdminCalibration(evaluationId, payload) { const r=await requestEndpoint('saveAdminCalibration', { evaluationId }, { method: 'PUT', body: payload, timeoutMs: 30000 }); clearReadCache('/ic-admin/admin/calibration'); return r; },
     async completeAdminCalibration(evaluationId) { const r=await requestEndpoint('completeAdminCalibration', { evaluationId }, { method: 'POST', timeoutMs: 30000 }); clearReadCache('/ic-admin/admin/calibration'); return r; },
@@ -251,16 +251,16 @@
     // --- Líder ---------------------------------------------------------------
     liderEquipo() { return this.leaderTeam(); },
     liderEvaluaciones() { return this.leaderTeam(); },
-    liderEvaluacionPorId() { return unavailableEndpoint('evaluationDetail'); },
+    liderEvaluacionPorId(id) { return this.evaluationDetail(id); },
     liderEvaluacionGuardar(id, payload) { return this.saveLeaderDraft(id, payload); },
     liderEvaluacionEnviar(id) { return this.submitLeader(id); },
 
     // --- Administrador ---------------------------------------------------
-    adminEvaluaciones() { return unavailableEndpoint('adminDashboard'); },
+    adminEvaluaciones() { return this.adminDashboard(); },
     adminCalibraciones() { return this.adminCalibration(); },
     adminCalibracionGuardar(id, payload) { return this.saveAdminCalibration(id, payload); },
     adminCalibracionLiberar() { return unavailableEndpoint('releaseResult'); },
-    adminNineBox() { return unavailableEndpoint('adminDashboard'); },
+    adminNineBox() { return this.adminDashboard(); },
     adminEnviarNotificacion() { return unavailableEndpoint('adminNotification'); },
 
     // --- Retroalimentación -------------------------------------------------

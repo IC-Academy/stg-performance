@@ -59,12 +59,14 @@ test('all authorized ICA operations use the centralized staging routes', async (
   await api.authLogout();
   await api.evaluationsMine();
   await api.initializeMyEvaluation();
+  await api.evaluationDetail('ev 1');
   await api.saveSelfDraft('ev 1', {});
   await api.submitSelf('ev 1');
   await api.leaderTeam();
   await api.saveLeaderDraft('ev 1', {});
   await api.submitLeader('ev 1');
   await api.adminCalibration();
+  await api.adminDashboard();
   await api.saveAdminCalibration('ev 1', {});
   await api.completeAdminCalibration('ev 1');
 
@@ -75,12 +77,14 @@ test('all authorized ICA operations use the centralized staging routes', async (
     ['POST', 'https://jmejiaromero.app.n8n.cloud/webhook/ic-admin/auth/logout'],
     ['GET', 'https://jmejiaromero.app.n8n.cloud/webhook/ic-admin/evaluations/mine'],
     ['POST', 'https://jmejiaromero.app.n8n.cloud/webhook/ic-admin/evaluations/mine/initialize'],
+    ['GET', 'https://jmejiaromero.app.n8n.cloud/webhook/dcc98a8a-f131-4f86-8809-8feb5903de8e/ic-admin/evaluations/ev%201'],
     ['PUT', 'https://jmejiaromero.app.n8n.cloud/webhook/f65f8103-b53c-4b4d-9006-d3d299efa261/ic-admin/evaluations/ev%201/self-draft'],
     ['POST', 'https://jmejiaromero.app.n8n.cloud/webhook/32c614ca-8442-4935-b9f2-580ffe6a93bc/ic-admin/evaluations/ev%201/submit-self'],
     ['GET', 'https://jmejiaromero.app.n8n.cloud/webhook/ic-admin/leader/team'],
     ['PUT', 'https://jmejiaromero.app.n8n.cloud/webhook/d83afc7a-be9a-425d-bdd5-e53ddedb7f83/ic-admin/evaluations/ev%201/leader-draft'],
     ['POST', 'https://jmejiaromero.app.n8n.cloud/webhook/59acff4b-d56b-43e4-a14d-d6c4d7e3104a/ic-admin/evaluations/ev%201/submit-leader'],
     ['GET', 'https://jmejiaromero.app.n8n.cloud/webhook/ic-admin/admin/calibration'],
+    ['GET', 'https://jmejiaromero.app.n8n.cloud/webhook/ic-admin/admin/dashboard'],
     ['PUT', 'https://jmejiaromero.app.n8n.cloud/webhook/a21f9ae0-316c-4462-8c85-0ae9ab2c8b2c/ic-admin/admin/calibration/ev%201'],
     ['POST', 'https://jmejiaromero.app.n8n.cloud/webhook/cba96b1a-2228-4749-8d60-4ed43b30e64a/ic-admin/admin/calibration/ev%201/complete']
   ]);
@@ -89,8 +93,6 @@ test('all authorized ICA operations use the centralized staging routes', async (
 test('unapproved and post-Calibration endpoints never perform a request', async () => {
   const { context, calls } = createRuntime();
   for (const operation of [
-    () => context.EDDApi.evaluationDetail('ev-1'),
-    () => context.EDDApi.adminDashboard(),
     () => context.EDDApi.releaseResult('ev-1'),
     () => context.EDDApi.signFeedbackAsEmployee('feedback-1')
   ]) {
