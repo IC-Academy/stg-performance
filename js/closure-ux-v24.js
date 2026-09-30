@@ -32,7 +32,7 @@
 
   function employeeIdFromPage(){
     let m=location.hash.match(/\/(?:resultado|comparacion|seguimiento|feedback)\/([^/?#]+)/i); if(m)return decodeURIComponent(m[1]);
-    const n=Array.from(document.querySelectorAll('*')).find(el=>/^n[.°º]?\s*de empleado$/i.test(txt(el)));
+    const n=Array.from(document.querySelectorAll('*')).find(el=>/^n[.°º]?\s*de empleado$|^employee no\.?$/i.test(txt(el)));
     if(n&&n.parentElement){const values=Array.from(n.parentElement.children);const idx=values.indexOf(n);if(values[idx+1])return txt(values[idx+1]);}
     const db=S.load(); const candidates=(db.colaboradores||[]).filter(c=>document.body&&document.body.innerText&&document.body.innerText.includes(c.nombre));
     return candidates.length===1?candidates[0].empleado:null;
@@ -41,64 +41,64 @@
   function repairEmployeeObjectiveResult(){
     const employeeId=employeeIdFromPage(); if(!employeeId)return;
     const info=leaderObjectiveInfo(employeeId); if(!info||info.score==null)return;
-    const card=Array.from(document.querySelectorAll('article,div')).find(el=>/C\.\s*Cumplimiento de Objetivos/i.test(txt(el)) && el.querySelector && el.querySelector('.progress,.progress-bar'));
+    const card=Array.from(document.querySelectorAll('article,div')).find(el=>/C\.\s*(Cumplimiento de Objetivos|Goal Achievement)/i.test(txt(el)) && el.querySelector && el.querySelector('.progress,.progress-bar'));
     if(!card)return;
     const current=lower(txt(card));
-    if(!/n\/a|no aplic[oó]/.test(current))return;
+    if(!/n\/a|no aplic[oó]|not applicable/.test(current))return;
     const pctScore=Math.max(0,Math.min(100,(info.score/5)*100));
     const badge=Array.from(card.querySelectorAll('span,b,em')).find(el=>/^n\/a$/i.test(txt(el)));
     if(badge) badge.textContent='30%';
     const bar=card.querySelector('.progress-bar'); if(bar) bar.style.width=pctScore+'%';
     const smalls=Array.from(card.querySelectorAll('small,p,span')).filter(el=>el!==badge);
-    const note=smalls.find(el=>/no aplic[oó]|reponderado/i.test(txt(el)));
-    if(note) note.textContent=`${fmt(info.pct!=null?info.pct:pctScore)}% de cumplimiento · promedio ${fmt(info.score)}/5 · ${info.count} objetivo${info.count===1?'':'s'}`;
+    const note=smalls.find(el=>/no aplic[oó]|reponderado|not applicable|reweighted/i.test(txt(el)));
+    if(note) note.textContent=`${fmt(info.pct!=null?info.pct:pctScore)}% achievement · average ${fmt(info.score)}/5 · ${info.count} goal${info.count===1?'':'s'}`;
     card.classList.add('objective-result-restored-v24');
   }
 
   function friendlyProcessLabels(){
     document.querySelectorAll('table').forEach(table=>{
       const heads=Array.from(table.querySelectorAll('thead th')).map(h=>lower(txt(h)));
-      const idx=heads.findIndex(h=>h==='proceso'); if(idx<0)return;
+      const idx=heads.findIndex(h=>h==='proceso'||h==='process'); if(idx<0)return;
       table.querySelectorAll('tbody tr').forEach(row=>{
         const cell=row.children[idx]; if(!cell)return;
         const raw=lower(txt(cell));
-        if(raw==='released'||raw.includes('feedback_released')||raw.includes('result_released')) cell.innerHTML='<span class="badge workflow-state-action">Retroalimentación disponible</span>';
-        else if(raw.includes('leader_submitted')) cell.innerHTML='<span class="badge badge-yellow">Pendiente de calibración</span>';
-        else if(raw.includes('pending_meeting')) cell.innerHTML='<span class="badge workflow-state-action">Pendiente de reunión</span>';
-        else if(raw.includes('pending_leader_signature')) cell.innerHTML='<span class="badge badge-red">Pendiente de firma del líder</span>';
-        else if(raw.includes('pending_employee_signature')) cell.innerHTML='<span class="badge badge-yellow">Pendiente de firma del colaborador</span>';
+        if(raw==='released'||raw.includes('feedback_released')||raw.includes('result_released')) cell.innerHTML='<span class="badge workflow-state-action">Feedback available</span>';
+        else if(raw.includes('leader_submitted')) cell.innerHTML='<span class="badge badge-yellow">Pending calibration</span>';
+        else if(raw.includes('pending_meeting')) cell.innerHTML='<span class="badge workflow-state-action">Pending meeting</span>';
+        else if(raw.includes('pending_leader_signature')) cell.innerHTML='<span class="badge badge-red">Pending manager signature</span>';
+        else if(raw.includes('pending_employee_signature')) cell.innerHTML='<span class="badge badge-yellow">Pending employee signature</span>';
       });
     });
     document.querySelectorAll('table tbody tr').forEach(row=>{
       const t=lower(txt(row));
-      if(!/retroalimentaci[oó]n disponible|released|pendiente de reuni[oó]n/.test(t))return;
-      const btn=Array.from(row.querySelectorAll('button,a.btn')).find(b=>/ver seguimiento|continuar/i.test(lower(txt(b))));
-      if(btn){btn.textContent='Completar retroalimentación →';btn.classList.add('workflow-action-primary','workflow-action-urgent');}
+      if(!/retroalimentaci[oó]n disponible|feedback available|released|pendiente de reuni[oó]n|pending meeting/.test(t))return;
+      const btn=Array.from(row.querySelectorAll('button,a.btn')).find(b=>/ver seguimiento|continuar|view progress|continue/i.test(lower(txt(b))));
+      if(btn){btn.textContent='Complete feedback →';btn.classList.add('workflow-action-primary','workflow-action-urgent');}
     });
   }
 
   function ensureLeaderFeedbackBadge(){
     if(!/\/lider\//.test(location.hash))return;
     const rows=Array.from(document.querySelectorAll('table tbody tr'));
-    const count=rows.filter(r=>/retroalimentaci[oó]n disponible|pending_meeting|released|completar retroalimentaci[oó]n/i.test(lower(txt(r)))).length;
+    const count=rows.filter(r=>/retroalimentaci[oó]n disponible|feedback available|pending_meeting|released|completar retroalimentaci[oó]n|complete feedback/i.test(lower(txt(r)))).length;
     if(!count)return;
-    const nav=Array.from(document.querySelectorAll('nav a,nav button,.app-nav a,.app-nav button,header a,header button')).find(el=>/mi equipo|seguimiento/i.test(txt(el)));
+    const nav=Array.from(document.querySelectorAll('nav a,nav button,.app-nav a,.app-nav button,header a,header button')).find(el=>/mi equipo|seguimiento|my team/i.test(txt(el)));
     if(nav&&!nav.querySelector('.workflow-nav-badge')){const b=document.createElement('span');b.className='workflow-nav-badge attention';b.textContent=String(count);nav.appendChild(b);nav.classList.add('workflow-nav-has-action');}
     const host=document.querySelector('.backend-live-section,.premium-evaluation-main,main,#app-root');
-    if(host&&!document.querySelector('.feedback-action-banner-v24')){const a=document.createElement('a');a.href='#/lider/dashboard';a.className='feedback-action-banner-v24';a.innerHTML=`<span>ACCIÓN PENDIENTE</span><strong>${count} ${count===1?'retroalimentación requiere':'retroalimentaciones requieren'} tu atención</strong><b>Continuar →</b>`;host.insertAdjacentElement('afterbegin',a);}
+    if(host&&!document.querySelector('.feedback-action-banner-v24')){const a=document.createElement('a');a.href='#/lider/dashboard';a.className='feedback-action-banner-v24';a.innerHTML=`<span>PENDING ACTION</span><strong>${count} ${count===1?'feedback item requires':'feedback items require'} your attention</strong><b>Continue →</b>`;host.insertAdjacentElement('afterbegin',a);}
   }
 
-  function lockButton(btn,label){if(!btn)return null;const old=btn.textContent;btn.disabled=true;btn.setAttribute('aria-busy','true');btn.classList.add('action-processing-v24');btn.textContent=label||'Procesando…';return old;}
+  function lockButton(btn,label){if(!btn)return null;const old=btn.textContent;btn.disabled=true;btn.setAttribute('aria-busy','true');btn.classList.add('action-processing-v24');btn.textContent=label||'Processing…';return old;}
   function finishButton(btn,label){if(!btn)return;btn.disabled=true;btn.removeAttribute('aria-busy');btn.classList.remove('action-processing-v24');btn.classList.add('action-complete-v24');btn.textContent=label;}
   function restoreButton(btn,old){if(!btn)return;btn.disabled=false;btn.removeAttribute('aria-busy');btn.classList.remove('action-processing-v24');btn.textContent=old;}
 
   if(typeof App.liberarAcuerdos==='function'&&!App.liberarAcuerdos.__v24){
     const original=App.liberarAcuerdos.bind(App);
     const wrapped=async function(colaboradorId,periodoId){
-      const btn=Array.from(document.querySelectorAll('button')).find(b=>/guardar y liberar acuerdos/i.test(txt(b)));const old=lockButton(btn,'Guardando y liberando…');
+      const btn=Array.from(document.querySelectorAll('button')).find(b=>/guardar y liberar acuerdos|save and release agreements/i.test(txt(b)));const old=lockButton(btn,'Saving and releasing…');
       await original(colaboradorId,periodoId);
       const cal=S.getCalibracion(colaboradorId,periodoId);
-      if(cal&&cal.acuerdosLiberados) finishButton(btn,'✓ Acuerdos liberados'); else restoreButton(btn,old);
+      if(cal&&cal.acuerdosLiberados) finishButton(btn,'✓ Agreements released'); else restoreButton(btn,old);
     }; wrapped.__v24=true; App.liberarAcuerdos=wrapped;
   }
 
@@ -106,10 +106,10 @@
     const original=App.firmarRetroalimentacion.bind(App);
     const wrapped=async function(role,colaboradorId,periodoId,canvasId){
       const canvas=document.getElementById(canvasId);const scope=canvas&&canvas.closest('.signature-card,.feedback-signature-card,.feedback-acceptance-card,.leader-release-card');
-      const btn=scope&&Array.from(scope.querySelectorAll('button')).find(b=>/firmar y confirmar|firmar ahora|confirmar firma/i.test(txt(b)));const old=lockButton(btn,'Registrando firma…');
+      const btn=scope&&Array.from(scope.querySelectorAll('button')).find(b=>/firmar y confirmar|firmar ahora|confirmar firma|sign and confirm|sign now/i.test(txt(b)));const old=lockButton(btn,'Recording signature…');
       await original(role,colaboradorId,periodoId,canvasId);
       const cal=S.getCalibracion(colaboradorId,periodoId);const ok=cal&&(role==='lider'?cal.firmaLider:cal.firmaColaborador);
-      if(ok) finishButton(btn,'✓ Firma registrada'); else restoreButton(btn,old);
+      if(ok) finishButton(btn,'✓ Signature recorded'); else restoreButton(btn,old);
     }; wrapped.__v24=true; App.firmarRetroalimentacion=wrapped;
   }
 
@@ -117,12 +117,12 @@
     const col=S.getColaborador(String(colaboradorId))||{}; const cal=S.getCalibracion(String(colaboradorId),periodoId)||{};
     const lev=S.getEvaluacion(String(colaboradorId),periodoId,'lider'); const res=lev&&S.getResultado(lev.id); const info=leaderObjectiveInfo(colaboradorId);
     const total=res&&res.puntajes&&num(res.puntajes.total); const score100=total!=null?(total<=5?total*20:total):null;
-    const signature=(title,name,date,data)=>`<div class="sig"><span>${esc(title)}</span>${data?`<img src="${data}" alt="Firma ${esc(title)}">`:'<div class="sig-empty">Sin firma</div>'}<b>${esc(name||'—')}</b><small>${date?new Date(date).toLocaleString('es-MX'):'—'}</small></div>`;
-    const objRows=info&&info.objs?info.objs.map((o,i)=>`<tr><td>${i+1}. ${esc(o.descripcion||'Objetivo')}</td><td>${esc(o.meta||'—')}</td><td>${esc(o.resultado||'—')}</td><td>${esc(o.cumplimiento==null?'—':fmt(num(o.cumplimiento))+'%')}</td><td>${esc(fmt(objectiveScore(o)))}/5</td></tr>`).join(''):'';
-    return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Constancia de retroalimentación</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;color:#102b4e;font-size:11px;line-height:1.4}.page{max-width:185mm;margin:0 auto}.head{background:#0b2f59;color:#fff;padding:18px 22px;border-radius:12px}.brand{font-size:10px;letter-spacing:2px;font-weight:800;opacity:.85}.head h1{margin:4px 0;font-size:22px}.head p{margin:0;opacity:.85}.person,.section{border:1px solid #d8e4ef;border-radius:10px;padding:12px 14px;margin-top:10px}.person{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}.label{font-size:8px;color:#6b7f96;text-transform:uppercase;letter-spacing:.8px}.value{display:block;font-weight:700}.score{font-size:24px;color:#14914b}.section h2{font-size:14px;margin:0 0 8px}.agreements{white-space:pre-wrap;background:#f7fafc;border-radius:8px;padding:10px;min-height:45px}table{width:100%;border-collapse:collapse;font-size:9px}th{background:#eef4fa;text-align:left;padding:6px}td{padding:6px;border-bottom:1px solid #e3ebf3}.sigs{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sig{border:1px solid #d8e4ef;border-radius:9px;padding:10px;text-align:center}.sig>span{display:block;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#6b7f96}.sig img{display:block!important;width:auto!important;height:auto!important;max-width:150px!important;max-height:55px!important;object-fit:contain!important;margin:8px auto!important}.sig b,.sig small{display:block}.sig-empty{height:55px;display:flex;align-items:center;justify-content:center;color:#8da0b5}.foot{margin-top:12px;border-top:1px solid #d8e4ef;padding-top:8px;color:#6b7f96;font-size:8px;text-align:center}img,svg,canvas{max-width:100%;height:auto}.no-chart{display:none!important}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><main class="page"><header class="head"><div class="brand">INTER-CON · EVALUACIÓN DE DESEMPEÑO</div><h1>Constancia de retroalimentación</h1><p>Documento final del proceso de evaluación, acuerdos y firmas.</p></header><section class="person"><div><span class="label">Colaborador</span><span class="value">${esc(col.nombre||colaboradorId)}</span><span class="label">Puesto</span><span class="value">${esc(col.puesto||'—')}</span></div><div><span class="label">Área</span><span class="value">${esc(col.area||'—')}</span><span class="label">N.º empleado</span><span class="value">${esc(colaboradorId)}</span></div><div><span class="label">Resultado final</span><span class="value score">${score100==null?'—':fmt(score100)}</span><span class="label">Periodo</span><span class="value">${esc(periodoId)}</span></div></section>${objRows?`<section class="section"><h2>Objetivos del periodo</h2><table><thead><tr><th>Objetivo</th><th>Meta</th><th>Resultado</th><th>Cumplimiento</th><th>Calificación</th></tr></thead><tbody>${objRows}</tbody></table></section>`:''}<section class="section"><h2>Acuerdos finales de la reunión</h2><div class="agreements">${esc(cal.acuerdosFinales||'Sin acuerdos registrados.')}</div></section><section class="section"><h2>Firmas</h2><div class="sigs">${signature('Líder',cal.firmaLiderNombre,cal.fechaFirmaLider,cal.firmaLiderData)}${signature('Colaborador',cal.firmaColaboradorNombre,cal.fechaFirmaColaborador,cal.firmaColaboradorData)}</div></section><footer class="foot">Generado desde la plataforma oficial de Evaluación de Desempeño Inter-Con · ${new Date().toLocaleDateString('es-MX')}</footer></main></body></html>`;
+    const signature=(title,name,date,data)=>`<div class="sig"><span>${esc(title)}</span>${data?`<img src="${data}" alt="${esc(title)} signature">`:'<div class="sig-empty">Not signed</div>'}<b>${esc(name||'—')}</b><small>${date?new Date(date).toLocaleString('en-US'):'—'}</small></div>`;
+    const objRows=info&&info.objs?info.objs.map((o,i)=>`<tr><td>${i+1}. ${esc(o.descripcion||'Goal')}</td><td>${esc(o.meta||'—')}</td><td>${esc(o.resultado||'—')}</td><td>${esc(o.cumplimiento==null?'—':fmt(num(o.cumplimiento))+'%')}</td><td>${esc(fmt(objectiveScore(o)))}/5</td></tr>`).join(''):'';
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Feedback record</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;color:#102b4e;font-size:11px;line-height:1.4}.page{max-width:185mm;margin:0 auto}.head{background:#0b2f59;color:#fff;padding:18px 22px;border-radius:12px}.brand{font-size:10px;letter-spacing:2px;font-weight:800;opacity:.85}.head h1{margin:4px 0;font-size:22px}.head p{margin:0;opacity:.85}.person,.section{border:1px solid #d8e4ef;border-radius:10px;padding:12px 14px;margin-top:10px}.person{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}.label{font-size:8px;color:#6b7f96;text-transform:uppercase;letter-spacing:.8px}.value{display:block;font-weight:700}.score{font-size:24px;color:#14914b}.section h2{font-size:14px;margin:0 0 8px}.agreements{white-space:pre-wrap;background:#f7fafc;border-radius:8px;padding:10px;min-height:45px}table{width:100%;border-collapse:collapse;font-size:9px}th{background:#eef4fa;text-align:left;padding:6px}td{padding:6px;border-bottom:1px solid #e3ebf3}.sigs{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sig{border:1px solid #d8e4ef;border-radius:9px;padding:10px;text-align:center}.sig>span{display:block;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:#6b7f96}.sig img{display:block!important;width:auto!important;height:auto!important;max-width:150px!important;max-height:55px!important;object-fit:contain!important;margin:8px auto!important}.sig b,.sig small{display:block}.sig-empty{height:55px;display:flex;align-items:center;justify-content:center;color:#8da0b5}.foot{margin-top:12px;border-top:1px solid #d8e4ef;padding-top:8px;color:#6b7f96;font-size:8px;text-align:center}img,svg,canvas{max-width:100%;height:auto}.no-chart{display:none!important}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><main class="page"><header class="head"><div class="brand">INTER-CON · PERFORMANCE EVALUATION</div><h1>Feedback record</h1><p>Final record of the performance evaluation process, agreements, and signatures.</p></header><section class="person"><div><span class="label">Employee</span><span class="value">${esc(col.nombre||colaboradorId)}</span><span class="label">Position</span><span class="value">${esc(col.puesto||'—')}</span></div><div><span class="label">Department</span><span class="value">${esc(col.area||'—')}</span><span class="label">Employee No.</span><span class="value">${esc(colaboradorId)}</span></div><div><span class="label">Final result</span><span class="value score">${score100==null?'—':fmt(score100)}</span><span class="label">Cycle</span><span class="value">${esc(periodoId)}</span></div></section>${objRows?`<section class="section"><h2>Cycle goals</h2><table><thead><tr><th>Goal</th><th>Target</th><th>Result</th><th>Achievement</th><th>Rating</th></tr></thead><tbody>${objRows}</tbody></table></section>`:''}<section class="section"><h2>Final meeting agreements</h2><div class="agreements">${esc(cal.acuerdosFinales||'No agreements recorded.')}</div></section><section class="section"><h2>Signatures</h2><div class="sigs">${signature('Manager',cal.firmaLiderNombre,cal.fechaFirmaLider,cal.firmaLiderData)}${signature('Employee',cal.firmaColaboradorNombre,cal.fechaFirmaColaborador,cal.firmaColaboradorData)}</div></section><footer class="foot">Generated from the official Inter-Con Performance Evaluation platform · ${new Date().toLocaleDateString('en-US')}</footer></main></body></html>`;
   }
 
-  App.descargarRetroalimentacion=function(colaboradorId,periodoId){const cal=S.getCalibracion(String(colaboradorId),periodoId);if(!cal||!(cal.firmaLider&&cal.firmaColaborador))return;const html=compactConstancy(colaboradorId,periodoId);const blob=new Blob([html],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`constancia-retroalimentacion-${colaboradorId}-${periodoId}.html`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+  App.descargarRetroalimentacion=function(colaboradorId,periodoId){const cal=S.getCalibracion(String(colaboradorId),periodoId);if(!cal||!(cal.firmaLider&&cal.firmaColaborador))return;const html=compactConstancy(colaboradorId,periodoId);const blob=new Blob([html],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`feedback-record-${colaboradorId}-${periodoId}.html`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   App.imprimirRetroalimentacion=function(colaboradorId,periodoId){const cal=S.getCalibracion(String(colaboradorId),periodoId);if(!cal||!(cal.firmaLider&&cal.firmaColaborador))return;const html=compactConstancy(colaboradorId,periodoId);const w=window.open('','_blank');if(!w)return;w.document.open();w.document.write(html);w.document.close();setTimeout(()=>{w.focus();w.print();},250);};
 
   function enhance(){repairEmployeeObjectiveResult();friendlyProcessLabels();ensureLeaderFeedbackBadge();}

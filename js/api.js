@@ -133,16 +133,16 @@
         const aborted = !!(controller && controller.signal && controller.signal.aborted);
         const abortLike = aborted || (err && (err.name === 'AbortError' || err.code === 20 || /aborted|abort/i.test(String(err.message || ''))));
         if (abortLike) {
-          throw new ApiError('timeout', 'La solicitud tardó demasiado. Intenta de nuevo.', null, err);
+          throw new ApiError('timeout', 'The request took too long. Please try again.', null, err);
         }
-        throw new ApiError('network', 'No fue posible conectar con el servidor. Verifica tu conexión e intenta de nuevo.', null, err);
+        throw new ApiError('network', 'Unable to connect to the server. Check your connection and try again.', null, err);
       }
       if (timeoutId) clearTimeout(timeoutId);
       setRequestActivity(-1);
 
       if (response.status === 401) {
         try { global.dispatchEvent(new CustomEvent(EVENTO_SESION_EXPIRADA)); } catch (e) { /* entornos sin CustomEvent */ }
-        throw new ApiError('unauthorized', 'Tu sesión expiró. Inicia sesión nuevamente.', 401);
+        throw new ApiError('unauthorized', 'Your session expired. Please sign in again.', 401);
       }
 
       let data = null;
@@ -151,12 +151,12 @@
         try { data = JSON.parse(raw); }
         catch (err) {
           console.error('EDDApi: respuesta no válida (no es JSON) de', endpoint, raw);
-          throw new ApiError('parse', 'El servidor devolvió una respuesta inesperada.', response.status, raw);
+          throw new ApiError('parse', 'The server returned an unexpected response.', response.status, raw);
         }
       }
 
       if (!response.ok) {
-        const msg = (data && data.error && data.error.message) ? data.error.message : ((data && data.message) ? data.message : 'Ocurrió un error al procesar la solicitud.');
+        const msg = (data && data.error && data.error.message) ? data.error.message : ((data && data.message) ? data.message : 'An error occurred while processing the request.');
         console.error('EDDApi: respuesta de error', endpoint, response.status, data);
         throw new ApiError('http', msg, response.status, data);
       }
@@ -177,7 +177,7 @@
     const endpoints = getConfig().apiEndpoints || {};
     const template = endpoints[name];
     if (!template) {
-      throw new ApiError('unavailable', 'Esta etapa todavía no está conectada en staging.', 501, { endpoint: name });
+      throw new ApiError('unavailable', 'This stage is not connected in staging yet.', 501, { endpoint: name });
     }
     return String(template).replace(/:([A-Za-z0-9_]+)/g, function (_, key) {
       if (!params || params[key] === undefined || params[key] === null || params[key] === '') {
@@ -194,7 +194,7 @@
   function unavailableEndpoint(name) {
     try { endpointPath(name); }
     catch (error) { return Promise.reject(error); }
-    return Promise.reject(new ApiError('unavailable', 'Esta etapa todavía no está conectada en staging.', 501, { endpoint: name }));
+    return Promise.reject(new ApiError('unavailable', 'This stage is not connected in staging yet.', 501, { endpoint: name }));
   }
 
   // Los únicos endpoints activos son los declarados en APP_CONFIG.apiEndpoints.

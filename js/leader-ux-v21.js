@@ -22,8 +22,8 @@
     steps.forEach((step, index) => {
       if (step.dataset.leaderNavV21 === '1') return;
       step.dataset.leaderNavV21 = '1';
-      step.setAttribute('aria-label', 'Ir a ' + text(step.querySelector('strong')));
-      step.setAttribute('title', 'Ir a ' + text(step.querySelector('strong')));
+      step.setAttribute('aria-label', 'Go to ' + text(step.querySelector('strong')));
+      step.setAttribute('title', 'Go to ' + text(step.querySelector('strong')));
 
       step.addEventListener('click', function (event) {
         event.preventDefault();
@@ -90,7 +90,7 @@
       if (!objective.querySelector('.leader-objective-label-v21')) {
         const label = document.createElement('span');
         label.className = 'leader-objective-label-v21';
-        label.textContent = 'OBJETIVO';
+        label.textContent = 'OBJECTIVE';
         objective.prepend(label);
       }
       fields.appendChild(objective);

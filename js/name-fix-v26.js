@@ -32,17 +32,17 @@
       if (!/^[A-ZÁÉÍÓÚÜÑ\s'-]+$/.test(txt)) continue;
       const parts = txt.split(/\s+/);
       if (parts.length < 2) continue;
-      if (/^(INTER|CON|ES|EN|INICIO|AUTOEVALUACIÓN|RETROALIMENTACIÓN|CERRAR|SESIÓN)$/.test(txt)) continue;
+      if (/^(INTER|CON|ES|EN|HOME|SELF-ASSESSMENT|FEEDBACK|SIGN|OUT|INICIO|AUTOEVALUACIÓN|RETROALIMENTACIÓN|CERRAR|SESIÓN)$/.test(txt)) continue;
       // Preferimos nombres cercanos al perfil del usuario, no títulos del sistema.
       const context = (el.parentElement && el.parentElement.textContent || '').toLowerCase();
-      if (/colaborador|líder|lider|administrador|evaluación de desempeño/.test(context)) return txt;
+      if (/employee|manager|administrator|performance evaluation|colaborador|líder|lider|administrador|evaluación de desempeño/.test(context)) return txt;
     }
     return '';
   }
 
   function fixSuccessGreeting() {
     const bodyText = document.body ? document.body.textContent || '' : '';
-    if (!/Evaluación enviada con éxito/i.test(bodyText)) return;
+    if (!/Evaluation submitted successfully/i.test(bodyText)) return;
 
     const fullName = findCorporateFullName();
     const given = givenNameFromCorporate(fullName);
@@ -52,8 +52,8 @@
     let node;
     while ((node = walker.nextNode())) {
       const value = node.nodeValue || '';
-      if (!/Gracias por tu participación,/i.test(value)) continue;
-      node.nodeValue = value.replace(/(Gracias por tu participación,\s*)([^.!\n<]+)/i, function (_, prefix) {
+      if (!/Thank you for your participation,/i.test(value)) continue;
+      node.nodeValue = value.replace(/(Thank you for your participation,\s*)([^.!\n<]+)/i, function (_, prefix) {
         return prefix + given;
       });
     }

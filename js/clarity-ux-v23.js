@@ -22,11 +22,11 @@
 
   function scoreRange(score) {
     const s = Number(score);
-    if (s === 5) return '110% o más';
-    if (s === 4) return '100% a 109%';
-    if (s === 3) return '90% a 99%';
-    if (s === 2) return '75% a 89%';
-    if (s === 1) return 'menos de 75%';
+    if (s === 5) return '110% or more';
+    if (s === 4) return '100% to 109%';
+    if (s === 3) return '90% to 99%';
+    if (s === 2) return '75% to 89%';
+    if (s === 1) return 'less than 75%';
     return '';
   }
 
@@ -41,7 +41,7 @@
       const score = strong ? num(text(strong).split('/')[0]) : null;
       if (!small || pct == null || score == null) return;
       const range = scoreRange(score);
-      small.innerHTML = `<b>${fmt(pct)}%</b> cae en <b>${range}</b>, por eso corresponde a <b>${score} ${score===1?'estrella':'estrellas'}</b>.`;
+      small.innerHTML = `<b>${fmt(pct)}%</b> falls in <b>${range}</b>, so it corresponds to <b>${score} ${score===1?'star':'stars'}</b>.`;
       scoreBox.classList.add('objective-score-explained-v23');
     });
   }
@@ -61,13 +61,13 @@
       if (cells[2]) cells[2].classList.add('objective-percent-v23');
       if (cells[3]) cells[3].classList.add('objective-stars-v23');
       const ratingLabel = cells[3] && cells[3].querySelector('label');
-      if (ratingLabel) ratingLabel.textContent = 'Resultado en estrellas';
+      if (ratingLabel) ratingLabel.textContent = 'Star rating';
       const percentLabel = cells[2] && cells[2].querySelector('label');
-      if (percentLabel) percentLabel.innerHTML = 'Comparación meta vs. resultado <small>Resultado ÷ meta × 100</small>';
+      if (percentLabel) percentLabel.innerHTML = 'Target vs. result comparison <small>Result ÷ target × 100</small>';
       if (!row.querySelector('.employee-objective-reading-v23')) {
         const guide = document.createElement('div');
         guide.className = 'employee-objective-reading-v23';
-        guide.innerHTML = '<span>ORDEN DE LECTURA</span><b>1. Objetivo</b><i>→</i><b>2. Meta y resultado alcanzado</b><i>→</i><b>3. Resultado en estrellas</b>';
+        guide.innerHTML = '<span>READING ORDER</span><b>1. Goal</b><i>→</i><b>2. Target and achieved result</b><i>→</i><b>3. Star rating</b>';
         main.insertAdjacentElement('afterend', guide);
       }
     });
@@ -114,10 +114,10 @@
     if (!autoEval || !leaderEval) return null;
 
     const labels = {
-      A1:'Compromiso Organizacional', A2:'Actitud de Servicio', A3:'Trabajo en Equipo',
-      A4:'Comunicación Efectiva', A5:'Adaptabilidad e Iniciativa', B1:'Dominio del Puesto',
-      B2:'Procesos y Herramientas', B3:'Orientación a Resultados', B4:'Planeación y Organización',
-      B5:'Seguimiento y Control'
+      A1:'Organizational Commitment', A2:'Service Mindset', A3:'Teamwork',
+      A4:'Effective Communication', A5:'Adaptability and Initiative', B1:'Role Mastery',
+      B2:'Processes and Tools', B3:'Results Orientation', B4:'Planning and Organization',
+      B5:'Follow-up and Control'
     };
     const dims = [];
     const auto = {}, leader = {};
@@ -129,7 +129,7 @@
     });
     const autoObj = avg((S.getObjetivos(autoEval.id)||[]).map(objectiveScore));
     const leaderObj = avg((S.getObjetivos(leaderEval.id)||[]).map(objectiveScore));
-    dims.push({key:'objetivos', label:'Cumplimiento de Objetivos', shortLabel:'Objetivos'});
+    dims.push({key:'objetivos', label:'Goal Achievement', shortLabel:'Goals'});
     auto.objetivos = autoObj;
     leader.objetivos = leaderObj;
 
@@ -144,12 +144,12 @@
   }
 
   function summaryStrip(autoProm, leaderProm) {
-    const sections = [['actitud','Valores y actitud'],['habilidades','Técnica funcional'],['objetivos','Objetivos']];
+    const sections = [['actitud','Values and attitude'],['habilidades','Technical and functional'],['objetivos','Goals']];
     return `<div class="performance-summary-strip">${sections.map(([k,label])=>{
       const a=num(autoProm[k]), l=num(leaderProm[k]);
       const ideal=l==null?null:5-l, perception=(a==null||l==null)?null:a-l;
       const cls=ideal==null?'neutral':ideal<=.5?'good':ideal<=1.25?'mid':'attention';
-      return `<article class="performance-summary-card ${cls}"><span>${label}</span><strong>${l==null?'—':fmt(l)}<small>/5 líder</small></strong><div><b>${ideal==null?'—':fmt(ideal)+' pts al ideal'}</b><em>${perception==null?'—':(perception>0?'+':'')+fmt(perception)+' auto vs líder'}</em></div></article>`;
+      return `<article class="performance-summary-card ${cls}"><span>${label}</span><strong>${l==null?'—':fmt(l)}<small>/5 manager</small></strong><div><b>${ideal==null?'—':fmt(ideal)+' pts to ideal'}</b><em>${perception==null?'—':(perception>0?'+':'')+fmt(perception)+' self vs manager'}</em></div></article>`;
     }).join('')}</div>`;
   }
 
@@ -164,10 +164,10 @@
     const radar = Charts.renderRadarChart({autoevaluacion:data.autoProm, evaluacionLider:data.leaderProm});
     section.dataset.unifiedV23 = '1';
     section.innerHTML = `
-      <div class="performance-profile-head"><div><span class="admin-section-kicker">LECTURA MULTIDIMENSIONAL</span><h2>Perfil de desempeño vs. ideal</h2><p>Esta vista usa exactamente la misma fuente y cálculo que la comparación del líder: competencias, herramientas B.2 consolidadas y objetivos del expediente.</p></div><span class="calibration-source-badge-v23">MISMA LECTURA QUE LÍDER</span></div>
+      <div class="performance-profile-head"><div><span class="admin-section-kicker">MULTIDIMENSIONAL VIEW</span><h2>Performance profile vs. ideal</h2><p>This view uses the same source and calculation as the manager comparison: competencies, consolidated B.2 tools, and goals from the evaluation record.</p></div><span class="calibration-source-badge-v23">SAME VIEW AS MANAGER</span></div>
       ${summaryStrip(data.autoProm,data.leaderProm)}
       ${wheel}
-      <details class="performance-summary-details"><summary>Ver resumen ejecutivo de 3 dimensiones</summary><div class="feedback-analysis-single"><div><h3>Radar ejecutivo</h3>${radar}</div></div></details>`;
+      <details class="performance-summary-details"><summary>View executive summary of 3 dimensions</summary><div class="feedback-analysis-single"><div><h3>Executive radar</h3>${radar}</div></div></details>`;
   }
 
   function enhance() {

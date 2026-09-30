@@ -39,23 +39,23 @@
   //    Documento oficial + precisión decimal indicada por el cliente.
   // ===========================================================================
   const NIVELES_DESEMPENO = [
-    { min: 90, max: 100, nivel: 'Sobresaliente', color: '#1e7e34' },
-    { min: 80, max: 89.99, nivel: 'Excede las expectativas', color: '#28a745' },
-    { min: 60, max: 79.99, nivel: 'Cumple las expectativas', color: '#3b82c4' },
-    { min: 40, max: 59.99, nivel: 'Cumple parcialmente; requiere plan de mejora', color: '#e0a800' },
-    { min: -Infinity, max: 39.99, nivel: 'No cumple las expectativas del puesto', color: '#c0392b' }
+    { min: 90, max: 100, nivel: 'Outstanding', color: '#1e7e34' },
+    { min: 80, max: 89.99, nivel: 'Exceeds expectations', color: '#28a745' },
+    { min: 60, max: 79.99, nivel: 'Meets expectations', color: '#3b82c4' },
+    { min: 40, max: 59.99, nivel: 'Partially meets expectations; improvement plan required', color: '#e0a800' },
+    { min: -Infinity, max: 39.99, nivel: 'Does not meet role expectations', color: '#c0392b' }
   ];
 
   function clasificarNivel(total) {
     if (total === null || total === undefined || isNaN(total)) {
-      return { nivel: 'Sin datos', color: '#6c757d' };
+      return { nivel: 'No data', color: '#6c757d' };
     }
     for (const rango of NIVELES_DESEMPENO) {
       if (total >= rango.min && total <= rango.max) {
         return { nivel: rango.nivel, color: rango.color };
       }
     }
-    return { nivel: 'Sin datos', color: '#6c757d' };
+    return { nivel: 'No data', color: '#6c757d' };
   }
 
   // ===========================================================================
@@ -64,9 +64,9 @@
   //    Nivel 1: <60 · Nivel 2: 60-79 · Nivel 3: 80-100.
   // ===========================================================================
   const CONFIG_9BOX = {
-    ejeVertical: 'Actitud',
-    ejeHorizontal: 'Desempeño',
-    etiquetasNivel: ['Bajo', 'Medio / esperado', 'Alto'],
+    ejeVertical: 'Attitude',
+    ejeHorizontal: 'Performance',
+    etiquetasNivel: ['Low', 'Medium / expected', 'High'],
     nivel1MaxBase100: 59.9999,
     nivel2MaxBase100: 79.9999,
     nivel3MaxBase100: 100
@@ -86,57 +86,57 @@
   const CUADRANTES_INFO = {
     1: {
       numero: 1, nombre: 'Black Spot',
-      significado: 'No tiene la actitud ni los conocimientos requeridos para su posición.',
-      accion: 'No Inter-Con — con plan de acción inmediato y mejora en un mes; de lo contrario, debe salir de la empresa.',
-      color: '#c0392b', prioridad: 'Crítica', seguimiento: 'Revisión en 1 mes'
+      significado: 'Does not have the attitude or knowledge required for the position.',
+      accion: 'Not Inter-Con — immediate action plan with improvement within one month; otherwise, the employee must leave the company.',
+      color: '#c0392b', prioridad: 'Critical', seguimiento: 'Review in 1 month'
     },
     2: {
-      numero: 2, nombre: 'Sembrando',
-      significado: 'Mejor actitud que desempeño.',
-      accion: 'Requiere plan claro de capacitación en sus áreas de posibilidad; evaluar en 3 meses.',
-      color: '#e0731c', prioridad: 'Alta', seguimiento: 'Revisión en 3 meses'
+      numero: 2, nombre: 'Sowing',
+      significado: 'Attitude is stronger than performance.',
+      accion: 'Requires a clear training plan in their improvement areas; evaluate in 3 months.',
+      color: '#e0731c', prioridad: 'High', seguimiento: 'Review in 3 months'
     },
     3: {
-      numero: 3, nombre: 'Semilla',
-      significado: 'Actitud positiva, pero desempeño bajo.',
-      accion: 'Potencial Gente Inter-Con — plan de capacitación técnica y evaluación en 3 meses mostrando mejora.',
-      color: '#e0a800', prioridad: 'Alta', seguimiento: 'Revisión en 3 meses'
+      numero: 3, nombre: 'Seed',
+      significado: 'Positive attitude, but low performance.',
+      accion: 'Inter-Con People Potential — technical training plan and evaluation in 3 months showing improvement.',
+      color: '#e0a800', prioridad: 'High', seguimiento: 'Review in 3 months'
     },
     4: {
-      numero: 4, nombre: 'En Maceta',
-      significado: 'Trabajo positivo, pero resultados aún por debajo del estándar.',
-      accion: 'Debe trabajar su actitud; se sugiere plan de coaching y evaluación cada 3 meses.',
-      color: '#e0a800', prioridad: 'Media-Alta', seguimiento: 'Coaching cada 3 meses'
+      numero: 4, nombre: 'Potted',
+      significado: 'Positive work, but results still below standard.',
+      accion: 'Needs to work on attitude; a coaching plan and evaluation every 3 months are recommended.',
+      color: '#e0a800', prioridad: 'Medium-High', seguimiento: 'Coaching every 3 months'
     },
     5: {
-      numero: 5, nombre: 'Sol',
-      significado: 'En la mitad — OK.',
-      accion: 'OK — está en su zona de confort y hace bien su trabajo con actitud positiva.',
-      color: '#3b82c4', prioridad: 'Media', seguimiento: 'Seguimiento en el próximo periodo'
+      numero: 5, nombre: 'Sun',
+      significado: 'In the middle — OK.',
+      accion: 'OK — in their comfort zone and doing their job well with a positive attitude.',
+      color: '#3b82c4', prioridad: 'Medium', seguimiento: 'Follow-up next period'
     },
     6: {
-      numero: 6, nombre: 'Cosecha',
-      significado: 'Buena actitud y desempeño promedio; buen potencial de crecimiento.',
-      accion: 'Guardián — capacidad para un puesto de liderazgo en la empresa.',
-      color: '#4caf50', prioridad: 'Media', seguimiento: 'Plan de crecimiento'
+      numero: 6, nombre: 'Harvest',
+      significado: 'Good attitude and average performance; good growth potential.',
+      accion: 'Guardian — capable of a leadership role in the company.',
+      color: '#4caf50', prioridad: 'Medium', seguimiento: 'Growth plan'
     },
     7: {
-      numero: 7, nombre: 'Agua',
-      significado: 'Actitud negativa, pero desempeño superior al promedio.',
-      accion: 'Debe trabajar su actitud para crecer en Inter-Con; hacer un plan o considerar retiro en el corto plazo.',
-      color: '#e0731c', prioridad: 'Alta', seguimiento: 'Plan de actitud en el corto plazo'
+      numero: 7, nombre: 'Water',
+      significado: 'Negative attitude, but above-average performance.',
+      accion: 'Needs to work on attitude to grow at Inter-Con; create a plan or consider separation in the short term.',
+      color: '#e0731c', prioridad: 'High', seguimiento: 'Short-term attitude plan'
     },
     8: {
-      numero: 8, nombre: 'Corazón',
-      significado: 'Por encima del promedio; tiene capacidad y actitud.',
-      accion: 'Crecimiento — listo para una posición de liderazgo en el corto plazo.',
-      color: '#2e7d32', prioridad: 'Alta', seguimiento: 'Plan de crecimiento en el corto plazo'
+      numero: 8, nombre: 'Heart',
+      significado: 'Above average; has both capability and attitude.',
+      accion: 'Growth — ready for a leadership position in the short term.',
+      color: '#2e7d32', prioridad: 'High', seguimiento: 'Short-term growth plan'
     },
     9: {
       numero: 9, nombre: 'Green Spot',
-      significado: 'Cumple a satisfacción tanto en actitud como en desempeño.',
-      accion: 'Alto Potencial — estrella de Inter-Con, lista para promoción inmediata.',
-      color: '#1b5e20', prioridad: 'Alta', seguimiento: 'Promoción inmediata'
+      significado: 'Fully meets expectations in both attitude and performance.',
+      accion: 'High Potential — an Inter-Con star, ready for immediate promotion.',
+      color: '#1b5e20', prioridad: 'High', seguimiento: 'Immediate promotion'
     }
   };
 
@@ -284,12 +284,12 @@
 
   function clasificarBrecha(diferenciaAbs) {
     if (diferenciaAbs === null || diferenciaAbs === undefined || isNaN(diferenciaAbs)) {
-      return { etiqueta: 'Sin datos', color: '#6c757d' };
+      return { etiqueta: 'No data', color: '#6c757d' };
     }
     const d = Math.abs(diferenciaAbs);
-    if (d <= CONFIG_BRECHA.alineadaMax) return { etiqueta: 'Alineada', color: '#28a745' };
-    if (d <= CONFIG_BRECHA.revisarMax) return { etiqueta: 'Revisar', color: '#e0a800' };
-    return { etiqueta: 'Brecha significativa', color: '#c0392b' };
+    if (d <= CONFIG_BRECHA.alineadaMax) return { etiqueta: 'Aligned', color: '#28a745' };
+    if (d <= CONFIG_BRECHA.revisarMax) return { etiqueta: 'Review', color: '#e0a800' };
+    return { etiqueta: 'Significant gap', color: '#c0392b' };
   }
 
   // ===========================================================================

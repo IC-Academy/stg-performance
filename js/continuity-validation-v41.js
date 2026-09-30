@@ -19,13 +19,13 @@
         let target = null;
 
         if (!impact || !replacement) {
-          message = lang === 'en' ? 'Complete the confidential operational continuity section before submitting.' : 'Completa la sección confidencial de continuidad operativa antes de enviar.';
+          message = 'Complete the confidential operational continuity section before submitting.';
           target = !impact ? selects[0] : selects[1];
         } else if (!actions.length) {
-          message = lang === 'en' ? 'Select at least one recommended continuity action before submitting.' : 'Selecciona al menos una acción recomendada de continuidad antes de enviar.';
+          message = 'Select at least one recommended continuity action before submitting.';
           target = block.querySelector('.leader-continuity-actions');
-        } else if ((impact === 'Alto' || impact === 'Crítico' || replacement === 'Sin reemplazo identificado') && !(comment && comment.value.trim())) {
-          message = lang === 'en' ? 'Add a confidential DO comment for the selected impact or lack of replacement.' : 'Agrega un comentario confidencial para DO por el impacto seleccionado o la falta de reemplazo.';
+        } else if ((impact === 'High' || impact === 'Critical' || impact === 'Alto' || impact === 'Crítico' || replacement === 'No identified replacement' || replacement === 'Sin reemplazo identificado') && !(comment && comment.value.trim())) {
+          message = 'Add a confidential DO comment for the selected impact or lack of replacement.';
           target = comment;
         }
 

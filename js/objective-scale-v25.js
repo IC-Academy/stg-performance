@@ -2,7 +2,7 @@
   'use strict';
 
   function isEmployeeObjectivesRoute() {
-    return /^#\/colaborador\//i.test(location.hash) && /objetiv/i.test(document.body.textContent || '');
+    return /^#\/colaborador\//i.test(location.hash) && /objetiv|objective|goal/i.test(document.body.textContent || '');
   }
 
   function hideEmployeeQuickScale() {
@@ -11,8 +11,8 @@
     const nodes = Array.from(document.querySelectorAll('div,section,article'));
     nodes.forEach((el) => {
       const txt = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (!txt.startsWith('Escala rápida para objetivos')) return;
-      if (!txt.includes('La estrella se obtiene del % validado por el líder')) return;
+      if (!txt.startsWith('Quick scale for objectives')) return;
+      if (!txt.includes('The star rating comes from the % validated by the manager')) return;
 
       // Oculta únicamente la tarjeta rápida añadida para orientar al líder.
       // El bloque azul de instrucciones del colaborador se conserva porque sí explica

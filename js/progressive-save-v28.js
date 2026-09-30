@@ -11,10 +11,10 @@
   function normalizeSection(value) {
     const raw = String(value || '').trim().toLowerCase();
     if (!raw) return 'ALL';
-    if (raw === 'a' || raw.indexOf('actitud') !== -1 || raw.indexOf('valores') !== -1) return 'A';
-    if (raw === 'b' || raw.indexOf('habil') !== -1 || raw.indexOf('conocimiento') !== -1 || raw.indexOf('técnica') !== -1 || raw.indexOf('tecnica') !== -1) return 'B';
-    if (raw === 'objectives' || raw === 'objetivos' || raw.indexOf('objetiv') !== -1) return 'OBJECTIVES';
-    if (raw === 'all' || raw === 'resumen') return 'ALL';
+    if (raw === 'a' || raw.indexOf('actitud') !== -1 || raw.indexOf('valores') !== -1 || raw.indexOf('attitude') !== -1 || raw.indexOf('values') !== -1) return 'A';
+    if (raw === 'b' || raw.indexOf('habil') !== -1 || raw.indexOf('conocimiento') !== -1 || raw.indexOf('técnica') !== -1 || raw.indexOf('tecnica') !== -1 || raw.indexOf('technical') !== -1 || raw.indexOf('skill') !== -1 || raw.indexOf('knowledge') !== -1) return 'B';
+    if (raw === 'objectives' || raw === 'objetivos' || raw.indexOf('objetiv') !== -1 || raw.indexOf('objective') !== -1 || raw.indexOf('goal') !== -1) return 'OBJECTIVES';
+    if (raw === 'all' || raw === 'resumen' || raw.indexOf('summary') !== -1) return 'ALL';
     return 'ALL';
   }
 
@@ -135,7 +135,7 @@
       const originalLabel = nextBtn ? nextBtn.textContent : '';
       if (nextBtn) {
         nextBtn.disabled = true;
-        nextBtn.textContent = 'Guardando…';
+        nextBtn.textContent = 'Saving…';
         nextBtn.setAttribute('aria-busy', 'true');
       }
 
@@ -152,7 +152,7 @@
           return;
         }
 
-        if (nextBtn) nextBtn.textContent = status.skipped ? '✓ Sin cambios' : '✓ Guardado';
+        if (nextBtn) nextBtn.textContent = status.skipped ? '✓ No changes' : '✓ Saved';
         await new Promise((resolve) => setTimeout(resolve, status.skipped ? 180 : 320));
         originalWizardNext(sectionName);
       } finally {
@@ -161,7 +161,7 @@
         if (nextBtn && document.body.contains(nextBtn)) {
           nextBtn.disabled = false;
           nextBtn.removeAttribute('aria-busy');
-          nextBtn.textContent = originalLabel || 'Siguiente →';
+          nextBtn.textContent = originalLabel || 'Next →';
         }
       }
     };
@@ -170,7 +170,7 @@
     App.wizardNext = progressiveWizardNext;
   }
 
-  // The explicit "Guardar progreso" button also saves only the visible
+  // The explicit "Save progress" button also saves only the visible
   // section. Existing ALL behavior remains available on the summary screen.
   const originalSaveProgress = App.guardarProgresoVisual && App.guardarProgresoVisual.bind(App);
   if (originalSaveProgress && !App.guardarProgresoVisual.__progressiveV28) {

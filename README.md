@@ -6,6 +6,7 @@ Frontend de staging para la Evaluacion de Desempeno de IC Admin.
 - Repositorio: `IC-Academy/stg-performance`
 - Fuente visual: `IC-Academy/performance`
 - Backend: webhooks ICA de n8n
+- Interfaz: English-only
 
 ## Aislamiento
 
@@ -31,6 +32,10 @@ Airtable y correo permanecen en n8n y nunca deben agregarse al repositorio.
 La configuracion central vive en `js/config.js`. Las etapas posteriores a
 Calibration estan deshabilitadas mediante `features.postCalibrationEnabled` y
 no tienen rutas configuradas.
+
+La capa visual y los textos visibles usan la variante English-only. Los valores
+heredados que n8n/Airtable conservan en espanol se traducen al mostrarse sin
+alterar sus contratos ni los datos persistidos.
 
 ## Limites de esta etapa
 

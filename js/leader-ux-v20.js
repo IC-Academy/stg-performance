@@ -21,7 +21,7 @@
       step.dataset.navReady = '1';
       step.setAttribute('role', 'button');
       step.setAttribute('tabindex', '0');
-      step.setAttribute('aria-label', 'Ir a ' + txt(step).replace(/^\d+\.\s*/, ''));
+      step.setAttribute('aria-label', 'Go to ' + txt(step).replace(/^\d+\.\s*/, ''));
       const go = () => {
         // Guardado en segundo plano antes de cambiar de sección. No bloquea la navegación.
         try { if (typeof App.guardarProgresoVisual === 'function') Promise.resolve(App.guardarProgresoVisual()).catch(() => {}); } catch (_) {}
@@ -35,20 +35,20 @@
   }
 
   function addObjectiveScale() {
-    const objectiveHeading = Array.from(document.querySelectorAll('h1,h2,h3')).find((h) => /cumplimiento de objetivos/i.test(txt(h)));
+    const objectiveHeading = Array.from(document.querySelectorAll('h1,h2,h3')).find((h) => /cumplimiento de objetivos|goal achievement/i.test(txt(h)));
     if (!objectiveHeading) return;
     const host = objectiveHeading.closest('.wizard-card, .card, main, section') || objectiveHeading.parentElement;
     if (!host || host.querySelector('.leader-objective-scale-guide')) return;
     const guide = document.createElement('div');
     guide.className = 'leader-objective-scale-guide';
     guide.innerHTML = `
-      <div class="leader-guide-title"><strong>Escala rápida para objetivos</strong><span>La estrella se obtiene del % validado por el líder.</span></div>
+      <div class="leader-guide-title"><strong>Quick scale for objectives</strong><span>The star rating comes from the % validated by the manager.</span></div>
       <div class="leader-star-scale">
-        <span><b>5 ★</b><small>110% o más</small></span>
-        <span><b>4 ★</b><small>100% a 109%</small></span>
-        <span><b>3 ★</b><small>90% a 99%</small></span>
-        <span><b>2 ★</b><small>75% a 89%</small></span>
-        <span><b>1 ★</b><small>Menos de 75%</small></span>
+        <span><b>5 ★</b><small>110% or more</small></span>
+        <span><b>4 ★</b><small>100% to 109%</small></span>
+        <span><b>3 ★</b><small>90% to 99%</small></span>
+        <span><b>2 ★</b><small>75% to 89%</small></span>
+        <span><b>1 ★</b><small>Less than 75%</small></span>
       </div>`;
     objectiveHeading.insertAdjacentElement('afterend', guide);
   }
@@ -59,10 +59,10 @@
       card.dataset.visualGuide = '1';
 
       const readings = Array.from(card.querySelectorAll('.objetivo-lectura'));
-      const objectiveText = readings.find((x) => /objetivo:/i.test(txt(x)));
-      const metaText = readings.find((x) => /meta acordada:/i.test(txt(x)));
-      const resultText = readings.find((x) => /resultado reportado:/i.test(txt(x)));
-      const pctText = readings.find((x) => /% reportado por colaborador:/i.test(txt(x)));
+      const objectiveText = readings.find((x) => /objetivo:|goal:|objective:/i.test(txt(x)));
+      const metaText = readings.find((x) => /meta acordada:|agreed target:/i.test(txt(x)));
+      const resultText = readings.find((x) => /resultado reportado:|reported result:/i.test(txt(x)));
+      const pctText = readings.find((x) => /% reportado por colaborador:|% reported by employee:/i.test(txt(x)));
 
       const meta = numberFromText(txt(metaText));
       const result = numberFromText(txt(resultText));
@@ -73,16 +73,16 @@
       visual.className = 'leader-objective-visual-flow';
       visual.innerHTML = `
         <div class="objective-flow-copy">
-          <span class="objective-flow-kicker">¿QUÉ DEBES VALIDAR?</span>
-          <strong>Compara el resultado contra la meta.</strong>
-          <small>El sistema calcula <b>Resultado ÷ Meta × 100</b>. Como líder solo confirma ese porcentaje o corrígelo si tu evidencia indica otro resultado.</small>
+          <span class="objective-flow-kicker">WHAT SHOULD YOU VALIDATE?</span>
+          <strong>Compare the result against the target.</strong>
+          <small>The system calculates <b>Result ÷ Target × 100</b>. As the manager, confirm that percentage or correct it if your evidence shows a different result.</small>
         </div>
         <div class="objective-flow-numbers">
-          <div><small>1 · META ACORDADA</small><strong>${Number.isFinite(meta) ? meta : '—'}</strong><span>Lo que debía lograrse</span></div>
+          <div><small>1 · AGREED TARGET</small><strong>${Number.isFinite(meta) ? meta : '—'}</strong><span>What was expected</span></div>
           <i>→</i>
-          <div><small>2 · RESULTADO</small><strong>${Number.isFinite(result) ? result : '—'}</strong><span>Lo reportado al cierre</span></div>
+          <div><small>2 · RESULT</small><strong>${Number.isFinite(result) ? result : '—'}</strong><span>What was reported at close</span></div>
           <i>→</i>
-          <div class="objective-flow-result"><small>3 · CUMPLIMIENTO</small><strong>${Number.isFinite(expected) ? expected + '%' : '—'}</strong><span>Este es el número que validas</span></div>
+          <div class="objective-flow-result"><small>3 · ACHIEVEMENT</small><strong>${Number.isFinite(expected) ? expected + '%' : '—'}</strong><span>This is the number you validate</span></div>
         </div>`;
 
       const fields = card.querySelector('.objetivo-fields');
@@ -97,7 +97,7 @@
 
       const input = card.querySelector('.leader-percent-field input[type="number"]');
       if (input) {
-        input.setAttribute('aria-label', 'Porcentaje de cumplimiento validado por líder');
+        input.setAttribute('aria-label', 'Achievement percentage validated by manager');
         input.setAttribute('inputmode', 'decimal');
       }
     });
@@ -115,16 +115,16 @@
       replacement.textContent = value || '—';
       el.replaceWith(replacement);
     });
-    return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${title}</title><style>
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${title}</title><style>
       @page{size:A4;margin:13mm}*{box-sizing:border-box}body{font-family:Segoe UI,Arial,sans-serif;color:#0b2545;margin:0;background:#fff;font-size:11px;line-height:1.45}.doc-head{background:#082b52;color:white;padding:22px 26px;border-radius:14px;margin-bottom:18px}.doc-brand{font-size:11px;letter-spacing:2px;font-weight:700;opacity:.8}.doc-head h1{font-size:25px;margin:5px 0 3px;color:white}.doc-head p{margin:0;opacity:.86}.doc-meta{display:flex;justify-content:space-between;gap:15px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.25)}#app-root{max-width:none!important}.container,.main-content,.content{max-width:none!important;width:100%!important;margin:0!important;padding:0!important}.card,.admin-panel,.feedback-acceptance-card,.leader-release-card,.performance-summary,.comparison-card{box-shadow:none!important;border:1px solid #d9e4f0!important;border-radius:12px!important;margin:0 0 12px!important;padding:14px!important;background:#fff!important}h1,h2,h3,h4{color:#082b52!important;break-after:avoid}.table{width:100%;border-collapse:collapse;font-size:10px}.table th{background:#edf4fb!important;color:#082b52!important;padding:7px}.table td{padding:7px;border-bottom:1px solid #e4ebf3}.print-field-value{border:1px solid #d9e4f0;background:#f8fbfe;padding:8px;border-radius:8px;min-height:30px}.leader-objective-scale-guide,.leader-objective-visual-flow{break-inside:avoid}.sidebar,.leader-sidebar,.admin-sidebar{display:none!important}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-    </style></head><body><header class="doc-head"><div class="doc-brand">INTER-CON · EVALUACIÓN DE DESEMPEÑO</div><h1>${title}</h1><p>Constancia de retroalimentación y seguimiento del periodo.</p><div class="doc-meta"><span>Documento generado desde la plataforma oficial</span><span>${new Date().toLocaleDateString('es-MX')}</span></div></header>${clone.innerHTML}</body></html>`;
+    </style></head><body><header class="doc-head"><div class="doc-brand">INTER-CON · PERFORMANCE EVALUATION</div><h1>${title}</h1><p>Feedback and follow-up record for the period.</p><div class="doc-meta"><span>Document generated from the official platform</span><span>${new Date().toLocaleDateString('en-US')}</span></div></header>${clone.innerHTML}</body></html>`;
   }
 
   App.imprimirRetroalimentacion = function () {
-    const html = createPrintableDocument('Retroalimentación de desempeño');
+    const html = createPrintableDocument('Performance feedback');
     if (!html) return;
     const w = window.open('', '_blank');
-    if (!w) { alert('El navegador bloqueó la ventana de impresión. Habilita ventanas emergentes para este sitio.'); return; }
+    if (!w) { alert('The browser blocked the print window. Enable pop-up windows for this site.'); return; }
     w.document.open();
     w.document.write(html);
     w.document.close();
@@ -134,13 +134,13 @@
   };
 
   App.descargarRetroalimentacion = function (colaboradorId, periodoId) {
-    const html = createPrintableDocument('Constancia de retroalimentación');
+    const html = createPrintableDocument('Feedback record');
     if (!html) return;
     const blob = new Blob([html], { type:'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `constancia-retroalimentacion-${colaboradorId || 'colaborador'}-${periodoId || 'periodo'}.html`;
+    a.download = `feedback-record-${colaboradorId || 'employee'}-${periodoId || 'period'}.html`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1200);
   };
@@ -164,14 +164,14 @@
 
   async function repairMissingSelfComparison() {
     if (!API || !S || !D || !/\/lider\/comparacion\//.test(location.hash)) return;
-    const table = Array.from(document.querySelectorAll('table')).find((t) => /AUTOEVALUACI[ÓO]N/i.test(txt(t.querySelector('thead'))));
+    const table = Array.from(document.querySelectorAll('table')).find((t) => /AUTOEVALUACI[ÓO]N|SELF-ASSESSMENT/i.test(txt(t.querySelector('thead'))));
     if (!table || table.dataset.selfRepair === 'done' || table.dataset.selfRepair === 'loading') return;
     const rows = Array.from(table.querySelectorAll('tbody tr'));
     if (!rows.length) return;
     const autoColMissing = rows.filter((r) => {
       const td = r.children[1];
       const v = txt(td);
-      return !v || v === '—' || /sin dato|n\/a/i.test(v);
+      return !v || v === '—' || /sin dato|no data|n\/a/i.test(v);
     }).length;
     if (autoColMissing < Math.max(2, Math.floor(rows.length / 3))) return;
 
@@ -202,7 +202,7 @@
       Object.keys(D.COMPETENCIAS || {}).forEach((sec) => (D.COMPETENCIAS[sec] || []).forEach((c) => { nameToId[String(c.nombre || '').trim().toLowerCase()] = String(c.id || '').toUpperCase(); }));
       rows.forEach((r) => {
         const name = txt(r.children[0]).replace(/\s+/g,' ').trim().toLowerCase();
-        if (/cumplimiento de objetivos/.test(name)) return;
+        if (/cumplimiento de objetivos|goal achievement/.test(name)) return;
         const id = nameToId[name];
         const value = id && answerMap[id];
         if (value != null && r.children[1] && (!txt(r.children[1]) || txt(r.children[1]) === '—')) r.children[1].textContent = value;

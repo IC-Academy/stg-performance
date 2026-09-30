@@ -49,7 +49,7 @@
   // v3 local demo: managers 20001/20002 also have their own employee record
   // and self-assessment. A clean namespace prevents an old browser seed from
   // hiding the newly accumulated profiles.
-  const STORAGE_KEY = 'edd_ic_admin_demo_db_v4';
+  const STORAGE_KEY = 'edd_ic_admin_demo_db_v5_en';
   let _db = null; // caché en memoria
 
   // ===========================================================================
@@ -191,7 +191,7 @@
       const perfilLider = col.perfilObjetivoLider || perfilAuto;
       const evalLiderId = crearEvaluacion(col, 'lider', perfilLider, D.ESTADOS.COMPLETADA, fechaLider, true);
       const liderEval = db.evaluaciones.find((e) => e.id === evalLiderId);
-      liderEval.fortalezas = 'Muestra disposición y compromiso con el equipo.';
+      liderEval.fortalezas = 'Shows willingness and commitment to the team.';
       const resultadoLider = calcularYGuardarResultado(evalLiderId, col.empleado, 'lider', fechaLider);
 
       if (estado === 'pendiente_calibracion') return;
@@ -211,12 +211,12 @@
         resultadoLider: totalLider,
         diferenciaGeneral: C.round1(totalAuto - totalLider),
         ajuste,
-        justificacion: 'Se ratifica el resultado de la evaluación del líder tras revisar evidencias y expediente administrativo.',
+        justificacion: 'The manager evaluation result is confirmed after reviewing the evidence and administrative file.',
         resultadoCalibrado,
-        responsable: 'Administrador DO',
+        responsable: 'DO Administrator',
         actas: index % 4 === 0 ? 1 : 0,
-        nom035: index % 3 === 0 ? 'Riesgo medio — seguimiento sugerido' : 'Riesgo bajo',
-        observacionesRH: 'Sin observaciones adicionales de DO para este periodo.',
+        nom035: index % 3 === 0 ? 'Medium risk — follow-up suggested' : 'Low risk',
+        observacionesRH: 'No additional DO observations for this period.',
         fecha: fechaCalib,
         hora: '10:00',
         retroHabilitada: false,
@@ -236,8 +236,8 @@
           campo: 'resultadoCalibrado',
           valorAnterior: null,
           valorNuevo: resultadoCalibrado,
-          motivo: 'Calibración inicial de DO',
-          usuario: 'Administrador DO',
+          motivo: 'Initial DO calibration',
+          usuario: 'DO Administrator',
           fecha: fechaCalib,
           hora: '10:00'
         }]
@@ -256,10 +256,10 @@
           calibracion.fechaReunionLider = '2026-08-04';
           calibracion.acuerdos = 'Maintain current strengths and follow up on agreed development priorities.';
         }
-        calibracion.historial.push({ campo: 'retroHabilitada', valorAnterior: false, valorNuevo: true, motivo: 'DO habilita fase de retroalimentación', usuario: 'Administrador DO', fecha: '2026-08-03', hora: '09:00' });
+        calibracion.historial.push({ campo: 'retroHabilitada', valorAnterior: false, valorNuevo: true, motivo: 'DO enables feedback phase', usuario: 'DO Administrator', fecha: '2026-08-03', hora: '09:00' });
         if (nivelBajo) {
-          db.areas_oportunidad.push({ id: nextId('AO'), colaboradorId: col.empleado, periodoId, area: 'Cumplimiento de objetivos y estándares de calidad', planMejora: 'Reforzar seguimiento semanal con su líder y revisar prioridades.' });
-          db.planes_desarrollo.push({ id: nextId('PD'), colaboradorId: col.empleado, periodoId, competencia: 'Orientación a Resultados', accion: 'Sesiones quincenales de coaching con su líder inmediato.', responsable: col.liderId, fechaCompromiso: '2026-09-15', estado: 'No iniciada', evidencia: '', observaciones: '' });
+          db.areas_oportunidad.push({ id: nextId('AO'), colaboradorId: col.empleado, periodoId, area: 'Goal achievement and quality standards', planMejora: 'Strengthen weekly follow-up with their manager and review priorities.' });
+          db.planes_desarrollo.push({ id: nextId('PD'), colaboradorId: col.empleado, periodoId, competencia: 'Results Orientation', accion: 'Biweekly coaching sessions with their direct manager.', responsable: col.liderId, fechaCompromiso: '2026-09-15', estado: 'No iniciada', evidencia: '', observaciones: '' });
         }
         return;
       }
@@ -268,20 +268,20 @@
         calibracion.retroHabilitada = true;
         calibracion.aceptacionColaborador = true;
         calibracion.fechaAceptacion = '2026-08-10';
-        calibracion.historial.push({ campo: 'retroHabilitada', valorAnterior: false, valorNuevo: true, motivo: 'DO habilita fase de retroalimentación', usuario: 'Administrador DO', fecha: '2026-08-03', hora: '09:00' });
-        calibracion.historial.push({ campo: 'aceptacionColaborador', valorAnterior: false, valorNuevo: true, motivo: 'Colaborador revisó y aceptó su resultado', usuario: col.nombre, fecha: '2026-08-10', hora: '11:00' });
+        calibracion.historial.push({ campo: 'retroHabilitada', valorAnterior: false, valorNuevo: true, motivo: 'DO enables feedback phase', usuario: 'DO Administrator', fecha: '2026-08-03', hora: '09:00' });
+        calibracion.historial.push({ campo: 'aceptacionColaborador', valorAnterior: false, valorNuevo: true, motivo: 'Employee reviewed and accepted their result', usuario: col.nombre, fecha: '2026-08-10', hora: '11:00' });
 
-        db.areas_oportunidad.push({ id: nextId('AO'), colaboradorId: col.empleado, periodoId, area: nivelBajo ? 'Cumplimiento de objetivos y estándares de calidad' : 'Gestión del tiempo en proyectos de alta complejidad', planMejora: nivelBajo ? 'Plan de coaching quincenal y revisión de prioridades con su líder.' : 'Adoptar herramienta de planeación semanal y revisar avances con su líder.' });
-        db.planes_desarrollo.push({ id: nextId('PD'), colaboradorId: col.empleado, periodoId, competencia: nivelBajo ? 'Orientación a Resultados' : 'Desarrollo de Personas (Liderazgo)', accion: nivelBajo ? 'Sesiones de coaching quincenal con su líder inmediato.' : 'Asignar mentoría de un colaborador junior del área.', responsable: col.liderId, fechaCompromiso: '2026-09-15', estado: 'En proceso', evidencia: 'plan_desarrollo_firmado.pdf', observaciones: '' });
+        db.areas_oportunidad.push({ id: nextId('AO'), colaboradorId: col.empleado, periodoId, area: nivelBajo ? 'Goal achievement and quality standards' : 'Time management in highly complex projects', planMejora: nivelBajo ? 'Biweekly coaching plan and priority review with their manager.' : 'Adopt a weekly planning tool and review progress with their manager.' });
+        db.planes_desarrollo.push({ id: nextId('PD'), colaboradorId: col.empleado, periodoId, competencia: nivelBajo ? 'Results Orientation' : 'People Development (Leadership)', accion: nivelBajo ? 'Biweekly coaching sessions with their direct manager.' : 'Mentor a junior employee in the area.', responsable: col.liderId, fechaCompromiso: '2026-09-15', estado: 'En proceso', evidencia: 'signed_development_plan.pdf', observaciones: '' });
 
         // Cronograma de 6 semanas
         const accionesBase = [
-          ['Sesión de retroalimentación formal', 1, 1, 'Completada', 100],
-          ['Definición de compromisos de mejora', 1, 2, 'Completada', 100],
-          ['Primer seguimiento de avance', 3, 3, nivelBajo ? 'En proceso' : 'Completada', nivelBajo ? 60 : 100],
-          ['Segundo seguimiento de avance', 4, 4, 'En proceso', 40],
-          ['Revisión intermedia con líder', 5, 5, 'No iniciada', 0],
-          ['Cierre de plan y evaluación de resultados', 6, 6, 'No iniciada', 0]
+          ['Formal feedback session', 1, 1, 'Completada', 100],
+          ['Definition of improvement commitments', 1, 2, 'Completada', 100],
+          ['First progress follow-up', 3, 3, nivelBajo ? 'En proceso' : 'Completada', nivelBajo ? 60 : 100],
+          ['Second progress follow-up', 4, 4, 'En proceso', 40],
+          ['Mid-point review with manager', 5, 5, 'No iniciada', 0],
+          ['Plan close and results evaluation', 6, 6, 'No iniciada', 0]
         ];
         accionesBase.forEach((a) => {
           db.acciones.push({
@@ -291,14 +291,14 @@
           });
         });
 
-        db.evidencias.push({ id: nextId('EVI'), colaboradorId: col.empleado, periodoId, nombreArchivo: 'retroalimentacion_firmada.pdf', tipo: 'PDF firmado', fecha: '2026-08-10', usuario: col.nombre, comentario: 'Documento de retroalimentación firmado por ambas partes.' });
+        db.evidencias.push({ id: nextId('EVI'), colaboradorId: col.empleado, periodoId, nombreArchivo: 'signed_feedback.pdf', tipo: 'Signed PDF', fecha: '2026-08-10', usuario: col.nombre, comentario: 'Feedback document signed by both parties.' });
       }
     });
 
     // Auditoría de la carga inicial
     db.auditoria.push({
-      id: nextId('AUD'), usuario: 'Sistema', accion: 'Inicialización de datos locales', entidad: 'sistema', entidadId: '-',
-      fecha: '2026-06-01', hora: '08:00', valorAnterior: null, valorNuevo: 'Base de datos inicial cargada'
+      id: nextId('AUD'), usuario: 'System', accion: 'Local data initialization', entidad: 'sistema', entidadId: '-',
+      fecha: '2026-06-01', hora: '08:00', valorAnterior: null, valorNuevo: 'Initial database loaded'
     });
 
     return db;
@@ -383,7 +383,7 @@
       ev = { id: generarId('EVAL'), periodoId, colaboradorId: String(colaboradorId), liderId: String(liderId), tipo, estado: global.EDDData.ESTADOS.EN_PROGRESO, fortalezas: '', oportunidadesDesarrollo: '', debilidadesBrechas: '', riesgosAtencion: '', comentarios: '', createdAt: t.iso, updatedAt: t.iso, completedAt: null };
       db.evaluaciones.push(ev);
       persist();
-      addAudit(colaboradorId, 'Inicio de evaluación', 'evaluaciones', ev.id, null, tipo);
+      addAudit(colaboradorId, 'Evaluation started', 'evaluaciones', ev.id, null, tipo);
     }
     return ev;
   }
@@ -456,7 +456,7 @@
       origen: ev.tipo, puntajes: resultado.puntajes, promedios: resultado.promedios, nivel: resultado.nivel, fecha: t.fecha
     });
     persist();
-    addAudit(usuario, 'Envío de evaluación', 'evaluaciones', evaluacionId, 'En progreso', 'Completada');
+    addAudit(usuario, 'Evaluation submitted', 'evaluaciones', evaluacionId, 'En progreso', 'Completada');
     return resultado;
   }
 
@@ -505,12 +505,12 @@
       const valorAnterior = cal[campo] !== undefined ? cal[campo] : null;
       const valorNuevo = cambios[campo];
       if (JSON.stringify(valorAnterior) !== JSON.stringify(valorNuevo)) {
-        cal.historial.push({ campo, valorAnterior, valorNuevo, motivo: cambios._motivo || 'Actualización de calibración', usuario, fecha: t.fecha, hora: t.hora });
+        cal.historial.push({ campo, valorAnterior, valorNuevo, motivo: cambios._motivo || 'Calibration update', usuario, fecha: t.fecha, hora: t.hora });
         cal[campo] = valorNuevo;
       }
     });
     persist();
-    addAudit(usuario, esNuevo ? 'Calibración registrada' : 'Calibración modificada', 'calibraciones', cal.id, null, JSON.stringify(cambios));
+    addAudit(usuario, esNuevo ? 'Calibration recorded' : 'Calibration modified', 'calibraciones', cal.id, null, JSON.stringify(cambios));
 
     if (cambios.resultadoCalibrado !== undefined) {
       db.resultados.push({
@@ -523,13 +523,13 @@
   }
 
   function habilitarRetroalimentacion(colaboradorId, periodoId, usuario) {
-    return crearOActualizarCalibracion(colaboradorId, periodoId, { retroHabilitada: true, _motivo: 'DO habilita fase de retroalimentación' }, usuario);
+    return crearOActualizarCalibracion(colaboradorId, periodoId, { retroHabilitada: true, _motivo: 'DO enables feedback phase' }, usuario);
   }
 
   function aceptarResultado(colaboradorId, periodoId, usuario) {
     const t = nowParts();
-    const cal = crearOActualizarCalibracion(colaboradorId, periodoId, { aceptacionColaborador: true, fechaAceptacion: t.fecha, _motivo: 'Colaborador aceptó su resultado' }, usuario);
-    addAudit(usuario, 'Cierre de evaluación', 'calibraciones', cal.id, false, true);
+    const cal = crearOActualizarCalibracion(colaboradorId, periodoId, { aceptacionColaborador: true, fechaAceptacion: t.fecha, _motivo: 'Employee accepted their result' }, usuario);
+    addAudit(usuario, 'Evaluation closed', 'calibraciones', cal.id, false, true);
     return cal;
   }
 
@@ -544,14 +544,14 @@
     const db = load();
     const item = { id: generarId('AO'), colaboradorId, periodoId, area, planMejora };
     db.areas_oportunidad.push(item); persist();
-    addAudit(usuario, 'Registro de área de oportunidad', 'areas_oportunidad', item.id, null, area);
+    addAudit(usuario, 'Development opportunity recorded', 'areas_oportunidad', item.id, null, area);
     return item;
   }
   function removeAreaOportunidad(id, usuario) {
     const db = load();
     db.areas_oportunidad = db.areas_oportunidad.filter((a) => a.id !== id);
     persist();
-    addAudit(usuario, 'Eliminación de área de oportunidad', 'areas_oportunidad', id, null, null);
+    addAudit(usuario, 'Development opportunity deleted', 'areas_oportunidad', id, null, null);
   }
 
   function getPlanesDesarrollo(colaboradorId, periodoId) { return load().planes_desarrollo.filter((p) => p.colaboradorId === colaboradorId && p.periodoId === periodoId); }
@@ -559,7 +559,7 @@
     const db = load();
     const item = Object.assign({ id: generarId('PD'), colaboradorId, periodoId, estado: 'No iniciada', evidencia: '', observaciones: '' }, data);
     db.planes_desarrollo.push(item); persist();
-    addAudit(usuario, 'Registro de plan de desarrollo', 'planes_desarrollo', item.id, null, data.competencia);
+    addAudit(usuario, 'Development plan recorded', 'planes_desarrollo', item.id, null, data.competencia);
     return item;
   }
   function updatePlanDesarrollo(id, cambios, usuario) {
@@ -569,14 +569,14 @@
     const anterior = Object.assign({}, item);
     Object.assign(item, cambios);
     persist();
-    addAudit(usuario, 'Actualización de plan de desarrollo', 'planes_desarrollo', id, anterior.estado, item.estado);
+    addAudit(usuario, 'Development plan updated', 'planes_desarrollo', id, anterior.estado, item.estado);
     return item;
   }
   function removePlanDesarrollo(id, usuario) {
     const db = load();
     db.planes_desarrollo = db.planes_desarrollo.filter((p) => p.id !== id);
     persist();
-    addAudit(usuario, 'Eliminación de plan de desarrollo', 'planes_desarrollo', id, null, null);
+    addAudit(usuario, 'Development plan deleted', 'planes_desarrollo', id, null, null);
   }
 
   function getAcciones(colaboradorId, periodoId) { return load().acciones.filter((a) => a.colaboradorId === colaboradorId && a.periodoId === periodoId).sort((a, b) => a.semanaInicio - b.semanaInicio); }
@@ -584,7 +584,7 @@
     const db = load();
     const item = Object.assign({ id: generarId('ACC'), colaboradorId, periodoId, estado: 'No iniciada', avance: 0, evidencia: '' }, data);
     db.acciones.push(item); persist();
-    addAudit(usuario, 'Registro de acción de cronograma', 'acciones', item.id, null, data.accion);
+    addAudit(usuario, 'Schedule action recorded', 'acciones', item.id, null, data.accion);
     return item;
   }
   function updateAccion(id, cambios, usuario) {
@@ -594,7 +594,7 @@
     const estadoAnterior = item.estado;
     Object.assign(item, cambios);
     persist();
-    addAudit(usuario, 'Actualización de acción de cronograma', 'acciones', id, estadoAnterior, item.estado);
+    addAudit(usuario, 'Schedule action updated', 'acciones', id, estadoAnterior, item.estado);
     return item;
   }
 
@@ -604,7 +604,7 @@
     const t = nowParts();
     const item = { id: generarId('EVI'), colaboradorId, periodoId, nombreArchivo, tipo, fecha: t.fecha, usuario, comentario: comentario || '' };
     db.evidencias.push(item); persist();
-    addAudit(usuario, 'Carga de evidencia', 'evidencias', item.id, null, nombreArchivo);
+    addAudit(usuario, 'Evidence uploaded', 'evidencias', item.id, null, nombreArchivo);
     return item;
   }
 
@@ -619,7 +619,7 @@
     global.EDDCalc.CONFIG_BRECHA.alineadaMax = nuevo.alineadaMax;
     global.EDDCalc.CONFIG_BRECHA.revisarMax = nuevo.revisarMax;
     persist();
-    addAudit(usuario, 'Configuración de umbrales de brecha modificada', 'configuracion', 'configBrecha', JSON.stringify(anterior), JSON.stringify(nuevo));
+    addAudit(usuario, 'Gap threshold settings modified', 'configuracion', 'configBrecha', JSON.stringify(anterior), JSON.stringify(nuevo));
   }
 
   // ===========================================================================

@@ -59,7 +59,7 @@
 
   async function sha256Hex(value) {
     if (!global.crypto || !global.crypto.subtle || !global.TextEncoder) {
-      throw new global.EDDApi.ApiError('unavailable', 'El acceso seguro no está disponible en este navegador.');
+      throw new global.EDDApi.ApiError('unavailable', 'Secure access is not available in this browser.');
     }
     const bytes = new global.TextEncoder().encode(String(value));
     const digest = await global.crypto.subtle.digest('SHA-256', bytes);
@@ -72,7 +72,7 @@
   async function requestCode(numeroEmpleado) {
     numeroEmpleado = String(numeroEmpleado || '').trim();
     if (!/^\d{4,10}$/.test(numeroEmpleado)) {
-      throw new global.EDDApi.ApiError('validation', 'Captura un número de empleado válido.');
+      throw new global.EDDApi.ApiError('validation', 'Enter a valid employee number.');
     }
 
     if (cfg().mode === 'api') {
@@ -99,7 +99,7 @@
     };
     return {
       success: true,
-      message: 'Credenciales recibidas.',
+      message: 'Credentials received.',
       maskedEmail: null,
       requestId
     };
@@ -122,13 +122,13 @@
     numeroEmpleado = String(numeroEmpleado || '').trim();
     codigo = String(codigo || '').trim();
     if (!/^\d{6}$/.test(codigo)) {
-      throw new global.EDDApi.ApiError('validation', 'El código debe tener 6 dígitos.');
+      throw new global.EDDApi.ApiError('validation', 'The code must contain 6 digits.');
     }
     if (!pendiente || pendiente.numeroEmpleado !== numeroEmpleado) {
-      throw new global.EDDApi.ApiError('validation', 'Primero solicita un código para este número de empleado.');
+      throw new global.EDDApi.ApiError('validation', 'Request a code for this employee number first.');
     }
     if (Date.now() > pendiente.expiresAt) {
-      throw new global.EDDApi.ApiError('expired', 'El código venció. Solicita uno nuevo.');
+      throw new global.EDDApi.ApiError('expired', 'The code expired. Request a new one.');
     }
 
     if (cfg().mode === 'api') {
@@ -144,7 +144,7 @@
     const access = (cfg().localDemoUsers || {})[numeroEmpleado];
     const digest = await sha256Hex(numeroEmpleado + ':' + codigo);
     if (!access || digest !== access.credentialHash) {
-      throw new global.EDDApi.ApiError('invalid_credentials', 'Usuario o contraseña incorrectos.');
+      throw new global.EDDApi.ApiError('invalid_credentials', 'Incorrect user or password.');
     }
     const expiresIn = cfg().defaultSessionSeconds;
     const session = {
@@ -168,12 +168,12 @@
     numeroEmpleado = String(numeroEmpleado || '').trim();
     codigo = String(codigo || '').trim();
     if (!/^\d{4,10}$/.test(numeroEmpleado) || !/^\d{6}$/.test(codigo)) {
-      throw new global.EDDApi.ApiError('invalid_credentials', 'Usuario o contraseña incorrectos.');
+      throw new global.EDDApi.ApiError('invalid_credentials', 'Incorrect user or password.');
     }
     const access = (cfg().localDemoUsers || {})[numeroEmpleado];
     const digest = await sha256Hex(numeroEmpleado + ':' + codigo);
     if (!access || digest !== access.credentialHash) {
-      throw new global.EDDApi.ApiError('invalid_credentials', 'Usuario o contraseña incorrectos.');
+      throw new global.EDDApi.ApiError('invalid_credentials', 'Incorrect user or password.');
     }
     const expiresIn = cfg().defaultSessionSeconds;
     const session = {
