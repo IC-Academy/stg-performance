@@ -813,6 +813,12 @@
 
   async function refreshFeedbackDetail(evaluationId, colaboradorId, leaderEv) {
     const fresh=apiData(await global.EDDApi.evaluationDetail(evaluationId,true));
+    try {
+      const feedback=apiData(await global.EDDApi.getFeedback(evaluationId,true));
+      if(feedback) fresh.feedback=feedback.feedback||feedback;
+    } catch(e) {
+      if(!e || e.status!==404) throw e;
+    }
     state.remote.detail=fresh; state.remote.detailError=null;
     hydrateRemoteFeedback(fresh,String(colaboradorId),state.periodo.id,leaderEv||S.getEvaluacion(String(colaboradorId),state.periodo.id,'lider'));
     return fresh;
@@ -994,6 +1000,14 @@
     state.remote.detailLoading = true;
     try {
       state.remote.detail = apiData(await global.EDDApi.evaluationDetail(id, !!force));
+      if(global.APP_CONFIG.features&&global.APP_CONFIG.features.postCalibrationEnabled){
+        try{
+          const feedback=apiData(await global.EDDApi.getFeedback(id,!!force));
+          if(feedback) state.remote.detail.feedback=feedback.feedback||feedback;
+        }catch(feedbackError){
+          if(!feedbackError||feedbackError.status!==404) throw feedbackError;
+        }
+      }
       try { hydrateOwnRemoteDetail(); } catch (e) { console.warn('EDD read: no fue posible hidratar detalle propio', e); }
     } catch (e) {
       console.warn('EDD read: detalle propio no disponible', e);
@@ -3645,14 +3659,15 @@
       if(state.remote.calibrationReleasing) return;
       state.remote.calibrationReleasing=true; render();
       try{
-        const released=apiData(await global.EDDApi.releaseResult(evaluationId));
+        const selfEvaluationId=(state.remote.detail&&state.remote.detail.evaluation&&state.remote.detail.evaluation.selfEvaluationId)||String(evaluationId||'').replace(/-LIDER$/,'');
+        const released=apiData(await global.EDDApi.releaseResult(selfEvaluationId));
         if(released&&released.feedbackId){
           const employeeId=(state.remote.detail&&state.remote.detail.employee&&(state.remote.detail.employee.employeeId||state.remote.detail.employee.empleado))||'';
           if(employeeId) S.crearOActualizarCalibracion(String(employeeId),state.periodo.id,{feedbackId:released.feedbackId,retroHabilitada:true,_motivo:'Release confirmed by backend'},state.user.nombre);
         }
         try {
           const employeeId=(state.remote.detail&&state.remote.detail.employee&&(state.remote.detail.employee.employeeId||state.remote.detail.employee.empleado))||'';
-          if(employeeId) await refreshFeedbackDetail(evaluationId,employeeId,S.getEvaluacion(String(employeeId),state.periodo.id,'lider'));
+          if(employeeId) await refreshFeedbackDetail(selfEvaluationId,employeeId,S.getEvaluacion(String(employeeId),state.periodo.id,'lider'));
         } catch(refreshErr){ console.warn('Release confirmado; refresh de feedback pendiente',refreshErr); }
         showNotice('Result released for feedback.','success');
         if(global.EDDApi.adminCalibration) state.remote.calibration=apiData(await global.EDDApi.adminCalibration(true));
@@ -4240,7 +4255,7 @@
         if(apiWriteMode()){
           const feedbackId=cal.feedbackId;
           if(!feedbackId) throw new Error('The feedback identifier was not found. Refresh the page and try again.');
-          const payload={signatureImage:data};
+          const payload={signatureImage:data,signatureBase64:data,signatureFilename:`feedback-signature-${role}.png`};
           if(role==='lider') await global.EDDApi.signFeedbackAsLeader(feedbackId,payload);
           else await global.EDDApi.signFeedbackAsEmployee(feedbackId,payload);
         }

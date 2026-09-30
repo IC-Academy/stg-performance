@@ -219,7 +219,7 @@
       return requestEndpoint('authMe', null, { method: 'GET', cacheMs: 60000, forceRefresh: !!forceRefresh, timeoutMs: 10000 });
     },
 
-    // --- Lectura y escritura disponibles hasta Calibration ----------------
+    // --- Lectura y escritura del ciclo completo ----------------------------
     evaluationsMine(forceRefresh) { return requestEndpoint('evaluationsMine', null, { method: 'GET', cacheMs: 15000, forceRefresh: !!forceRefresh, timeoutMs: 12000 }); },
     evaluationDetail(evaluationId, forceRefresh) { return requestEndpoint('evaluationDetail', { evaluationId }, { method: 'GET', cacheMs: 15000, forceRefresh: !!forceRefresh, timeoutMs: 15000 }); },
     leaderTeam(forceRefresh) { return requestEndpoint('leaderTeam', null, { method: 'GET', cacheMs: 20000, forceRefresh: !!forceRefresh, timeoutMs: 12000 }); },
@@ -228,13 +228,14 @@
     async saveAdminCalibration(evaluationId, payload) { const r=await requestEndpoint('saveAdminCalibration', { evaluationId }, { method: 'PUT', body: payload, timeoutMs: 30000 }); clearReadCache('/ic-admin/admin/calibration'); return r; },
     async completeAdminCalibration(evaluationId) { const r=await requestEndpoint('completeAdminCalibration', { evaluationId }, { method: 'POST', timeoutMs: 30000 }); clearReadCache('/ic-admin/admin/calibration'); return r; },
 
-    // --- Etapas posteriores a Calibration: bloqueadas en staging ----------
-    releaseResult() { return unavailableEndpoint('releaseResult'); },
-    confirmFeedbackMeeting() { return unavailableEndpoint('confirmFeedbackMeeting'); },
-    saveFeedbackAgreements() { return unavailableEndpoint('saveFeedbackAgreements'); },
-    releaseFeedbackForSignature() { return unavailableEndpoint('releaseFeedbackForSignature'); },
-    signFeedbackAsLeader() { return unavailableEndpoint('signFeedbackAsLeader'); },
-    signFeedbackAsEmployee() { return unavailableEndpoint('signFeedbackAsEmployee'); },
+    // --- Feedback, signatures and closure ----------------------------------
+    async releaseResult(evaluationId) { const r=await requestEndpoint('releaseResult', { evaluationId }, { method: 'POST', timeoutMs: 30000 }); clearReadCache(); return r; },
+    getFeedback(evaluationId, forceRefresh) { return requestEndpoint('getFeedback', { evaluationId }, { method: 'GET', cacheMs: 10000, forceRefresh: !!forceRefresh, timeoutMs: 15000 }); },
+    async confirmFeedbackMeeting(feedbackId) { const r=await requestEndpoint('confirmFeedbackMeeting', { feedbackId }, { method: 'POST', timeoutMs: 30000 }); clearReadCache(); return r; },
+    async saveFeedbackAgreements(feedbackId, payload) { const r=await requestEndpoint('saveFeedbackAgreements', { feedbackId }, { method: 'PUT', body: payload, timeoutMs: 30000 }); clearReadCache(); return r; },
+    async releaseFeedbackForSignature(feedbackId) { const r=await requestEndpoint('releaseFeedbackForSignature', { feedbackId }, { method: 'POST', timeoutMs: 30000 }); clearReadCache(); return r; },
+    async signFeedbackAsLeader(feedbackId, payload) { const r=await requestEndpoint('signFeedbackAsLeader', { feedbackId }, { method: 'POST', body: payload, timeoutMs: 30000 }); clearReadCache(); return r; },
+    async signFeedbackAsEmployee(feedbackId, payload) { const r=await requestEndpoint('signFeedbackAsEmployee', { feedbackId }, { method: 'POST', body: payload, timeoutMs: 30000 }); clearReadCache(); return r; },
 
     async initializeMyEvaluation() { const r=await requestEndpoint('initializeMyEvaluation', null, { method: 'POST' }); clearReadCache('/ic-admin/evaluations/'); return r; },
     async saveSelfDraft(id, payload) { const r=await requestEndpoint('saveSelfDraft', { evaluationId:id }, { method: 'PUT', body: payload, timeoutMs: 12000 }); clearReadCache('/ic-admin/evaluations/'); return r; },
@@ -259,14 +260,14 @@
     adminEvaluaciones() { return this.adminDashboard(); },
     adminCalibraciones() { return this.adminCalibration(); },
     adminCalibracionGuardar(id, payload) { return this.saveAdminCalibration(id, payload); },
-    adminCalibracionLiberar() { return unavailableEndpoint('releaseResult'); },
+    adminCalibracionLiberar(id) { return this.releaseResult(id); },
     adminNineBox() { return this.adminDashboard(); },
     adminEnviarNotificacion() { return unavailableEndpoint('adminNotification'); },
 
     // --- Retroalimentación -------------------------------------------------
-    retroalimentacionPorId() { return unavailableEndpoint('confirmFeedbackMeeting'); },
-    retroalimentacionGuardar() { return unavailableEndpoint('saveFeedbackAgreements'); },
-    retroalimentacionCerrar() { return unavailableEndpoint('signFeedbackAsEmployee'); },
+    retroalimentacionPorId(id) { return this.getFeedback(id); },
+    retroalimentacionGuardar(id, payload) { return this.saveFeedbackAgreements(id, payload); },
+    retroalimentacionCerrar(id, payload) { return this.signFeedbackAsEmployee(id, payload); },
 
     // --- Asistente de IA para objetivos SMART -------------------------------
     // Ver README, sección "Asistente de IA para objetivos SMART". El frontend

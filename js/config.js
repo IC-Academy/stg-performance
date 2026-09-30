@@ -39,9 +39,8 @@
     // URL pública de webhooks. No contiene credenciales ni secretos.
     apiBaseUrl: 'https://jmejiaromero.app.n8n.cloud/webhook',
 
-    // Único mapa de rutas habilitadas en staging. Los valores null son
-    // bloqueos deliberados: esos endpoints no pertenecen a los 8 workflows
-    // ICA autorizados para esta etapa.
+    // Único mapa de rutas habilitadas en staging. Las rutas dinámicas
+    // incluyen el webhookId que n8n exige antes de la ruta parametrizada.
     apiEndpoints: {
       authRequestCode: '/ic-admin/auth/request-code',
       authVerifyCode: '/ic-admin/auth/verify-code',
@@ -59,17 +58,18 @@
       adminDashboard: '/ic-admin/admin/dashboard',
       saveAdminCalibration: '/a21f9ae0-316c-4462-8c85-0ae9ab2c8b2c/ic-admin/admin/calibration/:evaluationId',
       completeAdminCalibration: '/cba96b1a-2228-4749-8d60-4ed43b30e64a/ic-admin/admin/calibration/:evaluationId/complete',
-      releaseResult: null,
-      confirmFeedbackMeeting: null,
-      saveFeedbackAgreements: null,
-      releaseFeedbackForSignature: null,
-      signFeedbackAsLeader: null,
-      signFeedbackAsEmployee: null,
+      releaseResult: '/cc9425a8-27b4-41e2-8cee-a00abfff919e/ic-admin/evaluations/:evaluationId/release-feedback',
+      getFeedback: '/cf2c1e2b-8e8f-4b2a-a111-0fcd3faeed77/ic-admin/evaluations/:evaluationId/feedback',
+      confirmFeedbackMeeting: '/98695289-ee08-473d-a135-85e5d8c247fa/ic-admin/feedback/:feedbackId/confirm-meeting',
+      saveFeedbackAgreements: '/c0c75e0e-f196-43a6-8926-2f44042c1093/ic-admin/feedback/:feedbackId/agreements',
+      releaseFeedbackForSignature: '/bc8e4a2f-da4c-4ec9-9341-e3c740a8dea0/ic-admin/feedback/:feedbackId/release-for-signature',
+      signFeedbackAsLeader: '/39f835ea-0726-47ac-9d5f-9e4c905236a3/ic-admin/feedback/:feedbackId/sign-leader',
+      signFeedbackAsEmployee: '/254f8087-1bdc-4fa3-8ce6-a46c38363e1c/ic-admin/feedback/:feedbackId/sign-employee',
       smartObjective: null
     },
 
     features: {
-      postCalibrationEnabled: false
+      postCalibrationEnabled: true
     },
 
     // Clave usada en sessionStorage para guardar la sesión (token + usuario).
