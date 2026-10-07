@@ -493,7 +493,7 @@
     // --- Estado del login de dos pasos (beta 3) ---
     login: {
       paso: 'solicitar',   // 'solicitar' | 'validar'
-      numeroEmpleado: '',
+      email: '',
       maskedEmail: null,
       loading: false,
       error: null,
@@ -1046,7 +1046,7 @@
   function resetLoginState(paso) {
     state.login = {
       paso: paso || 'solicitar',
-      numeroEmpleado: state.login ? state.login.numeroEmpleado : '',
+      email: state.login ? state.login.email : '',
       maskedEmail: null,
       loading: false,
       error: null,
@@ -1311,9 +1311,9 @@
           <div class="premium-login-form-wrap">
             <div class="premium-login-lang">${languageSwitcher(false)}</div>
             <div class="premium-login-mobile-logo"><img src="assets/ic-admin-logo-white.svg" alt="IC Admin" /></div>
-            <div class="premium-login-step">${accesoRestringido ? 'Authorized access' : (L.paso === 'validar' ? 'Identity verification' : 'Welcome')}</div>
-            <h2>${accesoRestringido ? 'Sign in' : (L.paso === 'validar' ? 'Enter your access code' : 'Sign in')}</h2>
-            <p class="premium-login-description">${accesoRestringido ? 'Enter your employee number and password to continue.' : (L.paso === 'validar' ? 'Check your corporate email and enter the 6-digit temporary code.' : 'Use your employee number to access your evaluation.')}</p>
+            <div class="premium-login-step">${accesoRestringido ? 'Authorized access' : (L.paso === 'validar' ? 'Identity verification' : 'Secure access')}</div>
+            <h2>${accesoRestringido ? 'Sign in' : (L.paso === 'validar' ? 'Enter verification code' : 'Sign in to Performance')}</h2>
+            <p class="premium-login-description">${accesoRestringido ? 'Enter your employee number and password to continue.' : (L.paso === 'validar' ? 'Check your corporate email and enter the 6-digit temporary code.' : 'Enter your corporate email to receive a verification code.')}</p>
             ${avisoExpirada}
             ${cuerpo}
             <div class="premium-login-security">▾ &nbsp; Protected access · Authorized personnel only</div>
@@ -1340,12 +1340,12 @@
     const modoApi = global.APP_CONFIG.mode === 'api';
     return `
     <div class="login-form premium-login-form">
-      <label for="loginEmpleado">Employee number</label>
-      <div class="premium-input-wrap"><span>♙</span><input id="loginEmpleado" type="text" inputmode="numeric" placeholder="Enter your employee number" value="${esc(L.numeroEmpleado)}" /></div>
+      <label for="loginEmail">Corporate email</label>
+      <div class="premium-input-wrap"><span>✉</span><input id="loginEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@icsecurity.com" value="${esc(L.email)}" /></div>
       <p class="premium-field-help">We will send a verification code to your corporate email.</p>
       ${L.error ? `<p class="alert alert-danger">${esc(L.error)}</p>` : ''}
       ${L.info ? `<p class="alert alert-info">${esc(L.info)}</p>` : ''}
-      <button class="btn btn-primary btn-block premium-login-primary" id="btnSolicitarCodigo" ${L.loading ? 'disabled' : ''}>${L.loading ? 'Sending…' : 'Continue'} <span>→</span></button>
+      <button class="btn btn-primary btn-block premium-login-primary" id="btnSolicitarCodigo" ${L.loading ? 'disabled' : ''}>${L.loading ? 'Sending…' : 'Send verification code'} <span>→</span></button>
       ${modoApi ? '<p class="muted premium-api-note">Secure connection through the corporate API.</p>' : ''}
     </div>
     `;
@@ -1364,7 +1364,7 @@
       <button class="btn btn-primary btn-block premium-login-primary" id="btnValidarCodigo" ${L.loading ? 'disabled' : ''}>${L.loading ? 'Validating…' : 'Sign in to the platform'} <span>→</span></button>
       <div class="login-secondary-actions premium-login-secondary">
         <button class="btn btn-outline btn-sm" id="btnReenviarCodigo" ${L.loading ? 'disabled' : ''}>Resend code</button>
-        <button class="btn btn-outline btn-sm" id="btnCorregirEmpleado" ${L.loading ? 'disabled' : ''}>Change employee</button>
+        <button class="btn btn-outline btn-sm" id="btnCorregirEmpleado" ${L.loading ? 'disabled' : ''}>Change email</button>
       </div>
     </div>`;
   }
@@ -1392,9 +1392,9 @@
       const inputCodigo = $('#loginCodigo');
       if (inputCodigo) inputCodigo.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') Actions.validarCodigo(); });
     } else {
-      $('#btnSolicitarCodigo').addEventListener('click', () => Actions.solicitarCodigo($('#loginEmpleado').value.trim()));
-      const inputEmpleado = $('#loginEmpleado');
-      if (inputEmpleado) inputEmpleado.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') Actions.solicitarCodigo(inputEmpleado.value.trim()); });
+      $('#btnSolicitarCodigo').addEventListener('click', () => Actions.solicitarCodigo($('#loginEmail').value.trim()));
+      const inputEmail = $('#loginEmail');
+      if (inputEmail) inputEmail.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') Actions.solicitarCodigo(inputEmail.value.trim()); });
       document.querySelectorAll('[data-quick]').forEach((b) => b.addEventListener('click', () => Actions.quickLogin(b.getAttribute('data-quick'))));
     }
   }
@@ -3732,12 +3732,13 @@
         render();
       }
     },
-    async solicitarCodigo(numeroEmpleado) {
+    async solicitarCodigo(email) {
       state.login.error = null; state.login.info = null;
-      if (!numeroEmpleado) { state.login.error = 'Enter your employee number.'; render(); return; }
-      state.login.loading = true; state.login.numeroEmpleado = numeroEmpleado; render();
+      email = String(email || '').trim().toLowerCase();
+      if (!email) { state.login.error = 'Enter your corporate email.'; render(); return; }
+      state.login.loading = true; state.login.email = email; render();
       try {
-        const resp = await A.requestCode(numeroEmpleado);
+        const resp = await A.requestCode(email);
         state.login.paso = 'validar';
         state.login.maskedEmail = resp.maskedEmail || null;
         state.login.loading = false;
@@ -3754,7 +3755,7 @@
       const codigo = ($('#loginCodigo') || {}).value || '';
       state.login.error = null; state.login.info = null; state.login.loading = true; render();
       try {
-        const resp = await A.verifyCode(state.login.numeroEmpleado, codigo.trim());
+        const resp = await A.verifyCode(codigo.trim());
         const appUser = A.getAppUser();
         limpiarPerfil(appUser);
         state.user = aplicarPerfilSeleccionado(appUser);
@@ -3772,7 +3773,7 @@
       }
     },
     async reenviarCodigo() {
-      await Actions.solicitarCodigo(state.login.numeroEmpleado);
+      await Actions.solicitarCodigo(state.login.email);
       state.login.info = 'A new code was sent.';
       render();
     },
