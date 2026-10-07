@@ -39,7 +39,7 @@
 
   // Estado efímero (solo vive mientras el usuario está en la pantalla B de
   // login, entre "solicitar código" y "validar código"). No se persiste.
-  let pendiente = null; // { numeroEmpleado, requestId, maskedEmail, expiresAt }
+  let pendiente = null; // { email, requestId, expiresAt }
 
   function maskEmail(correo) {
     if (!correo || correo.indexOf('@') === -1) return '***@***';
@@ -69,40 +69,23 @@
   // ===========================================================================
   // PASO 1: SOLICITAR CÓDIGO
   // ===========================================================================
-  async function requestCode(numeroEmpleado) {
-    numeroEmpleado = String(numeroEmpleado || '').trim();
-    if (!/^\d{4,10}$/.test(numeroEmpleado)) {
-      throw new global.EDDApi.ApiError('validation', 'Enter a valid employee number.');
+  async function requestCode(email) {
+    email = String(email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new global.EDDApi.ApiError('validation', 'Enter a valid corporate email.');
     }
 
     if (cfg().mode === 'api') {
-      const resp = await global.EDDApi.authRequestCode(numeroEmpleado);
+      const resp = await global.EDDApi.authRequestCode(email);
       pendiente = {
-        numeroEmpleado,
+        email,
         requestId: resp.requestId,
-        maskedEmail: resp.maskedEmail || null,
         expiresAt: Date.now() + cfg().codeValidityMinutes * 60000
       };
       return resp;
     }
 
-    // Acceso estático restringido: se crea un desafío efímero sin revelar si
-    // el número existe. La validación de ambas credenciales ocurre en el paso
-    // siguiente y devuelve siempre un error genérico cuando no coinciden.
-    await esperar(250);
-    const requestId = generarRequestId();
-    pendiente = {
-      numeroEmpleado,
-      requestId,
-      maskedEmail: null,
-      expiresAt: Date.now() + cfg().codeValidityMinutes * 60000
-    };
-    return {
-      success: true,
-      message: 'Credentials received.',
-      maskedEmail: null,
-      requestId
-    };
+    throw new global.EDDApi.ApiError('unavailable', 'Email sign-in is available only through the corporate API.');
   }
 
   function correoDeUsuarioDemo(numeroEmpleado) {
@@ -118,50 +101,27 @@
   // ===========================================================================
   // PASO 2: VALIDAR CÓDIGO
   // ===========================================================================
-  async function verifyCode(numeroEmpleado, codigo) {
-    numeroEmpleado = String(numeroEmpleado || '').trim();
+  async function verifyCode(codigo) {
     codigo = String(codigo || '').trim();
     if (!/^\d{6}$/.test(codigo)) {
       throw new global.EDDApi.ApiError('validation', 'The code must contain 6 digits.');
     }
-    if (!pendiente || pendiente.numeroEmpleado !== numeroEmpleado) {
-      throw new global.EDDApi.ApiError('validation', 'Request a code for this employee number first.');
+    if (!pendiente || !pendiente.requestId) {
+      throw new global.EDDApi.ApiError('validation', 'Request a verification code first.');
     }
     if (Date.now() > pendiente.expiresAt) {
       throw new global.EDDApi.ApiError('expired', 'The code expired. Request a new one.');
     }
 
     if (cfg().mode === 'api') {
-      const resp = await global.EDDApi.authVerifyCode(numeroEmpleado, codigo, pendiente.requestId);
+      const resp = await global.EDDApi.authVerifyCode(codigo, pendiente.requestId);
       guardarSesionDesdeApi(resp);
       pendiente = null;
-      // /auth/me es la fuente autoritativa de identidad/capacidades. Si está
-      // disponible, enriquecemos la sesión inmediatamente después del OTP.
-      try { await refreshProfileFromApi(); } catch (e) { console.warn('EDDAuth: no fue posible hidratar /auth/me tras login.', e); }
+      try { await refreshProfileFromApi(); } catch (e) { console.warn('EDDAuth: unable to hydrate /auth/me after sign-in.', e); }
       return resp;
     }
 
-    const access = (cfg().localDemoUsers || {})[numeroEmpleado];
-    const digest = await sha256Hex(numeroEmpleado + ':' + codigo);
-    if (!access || digest !== access.credentialHash) {
-      throw new global.EDDApi.ApiError('invalid_credentials', 'Incorrect user or password.');
-    }
-    const expiresIn = cfg().defaultSessionSeconds;
-    const session = {
-      token: generarTokenDemo(),
-      expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
-      user: {
-        numeroEmpleado,
-        nombreCompleto: access.displayName,
-        rol: access.role,
-        puesto: access.position || '',
-        area: access.area || '',
-        capabilities: Object.assign({}, access.capabilities || {})
-      }
-    };
-    guardarSesion(session);
-    pendiente = null;
-    return { success: true, token: session.token, expiresIn, user: session.user };
+    throw new global.EDDApi.ApiError('unavailable', 'Email sign-in is available only through the corporate API.');
   }
 
   async function loginLocalCredentials(numeroEmpleado, codigo) {
