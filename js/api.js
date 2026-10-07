@@ -206,11 +206,11 @@
     clearReadCache,
 
     // --- Autenticación ---------------------------------------------------
-    authRequestCode(numeroEmpleado) {
-      return requestEndpoint('authRequestCode', null, { method: 'POST', auth: false, body: { numeroEmpleado } });
+    authRequestCode(email) {
+      return requestEndpoint('authRequestCode', null, { method: 'POST', auth: false, body: { email } });
     },
-    authVerifyCode(numeroEmpleado, codigo, requestId) {
-      return requestEndpoint('authVerifyCode', null, { method: 'POST', auth: false, body: { numeroEmpleado, codigo, requestId } });
+    authVerifyCode(code, requestId) {
+      return requestEndpoint('authVerifyCode', null, { method: 'POST', auth: false, body: { requestId, code } });
     },
     authLogout() {
       return requestEndpoint('authLogout', null, { method: 'POST' });
