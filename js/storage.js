@@ -51,6 +51,14 @@
   // hiding the newly accumulated profiles.
   const STORAGE_KEY = 'edd_ic_admin_demo_db_v5_en';
   let _db = null; // caché en memoria
+  let _apiToken = null;
+  function apiMode() { return !!(global.APP_CONFIG && global.APP_CONFIG.mode === 'api'); }
+  function sessionToken() {
+    try {
+      const session = JSON.parse(sessionStorage.getItem(global.APP_CONFIG.sessionStorageKey) || 'null');
+      return session && session.token || null;
+    } catch (_) { return null; }
+  }
 
   // ===========================================================================
   // SEMILLA INICIAL
@@ -91,6 +99,12 @@
     };
 
     const periodoId = periodo.id;
+
+    // Connected evaluations come from the backend, never from demo fixtures.
+    if (apiMode()) {
+      db.jerarquias = [];
+      return db;
+    }
 
     D.LIDERES.forEach((l) => {
       db.usuarios.push({ empleado: l.empleado, nombre: l.nombre, perfil: 'lider' });
@@ -308,6 +322,14 @@
   // PERSISTENCIA
   // ===========================================================================
   function load() {
+    if (apiMode()) {
+      const token = sessionToken();
+      if (!_db || token !== _apiToken) {
+        _apiToken = token;
+        _db = buildSeedDB();
+      }
+      return _db;
+    }
     if (_db) return _db;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -319,6 +341,7 @@
   }
 
   function persist() {
+    if (apiMode()) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(_db));
     } catch (e) {
@@ -327,7 +350,7 @@
   }
 
   function reset() {
-    localStorage.removeItem(STORAGE_KEY);
+    if (!apiMode()) localStorage.removeItem(STORAGE_KEY);
     _db = null;
     return load();
   }

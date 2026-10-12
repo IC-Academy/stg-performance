@@ -97,17 +97,15 @@
 
     const headers = { 'Content-Type': 'application/json' };
     const isGet = method === 'GET';
-    const cKey = cacheKey(endpoint);
+    const requestToken = options.auth !== false ? getStoredToken() : null;
+    const cKey = cacheKey(endpoint) + ':' + JSON.stringify(requestToken);
     const cacheMs = isGet ? Number(options.cacheMs || 0) : 0;
     if (cacheMs > 0 && !options.forceRefresh) {
       const cached = readCache.get(cKey);
       if (cached && (Date.now() - cached.at) < cacheMs) return cached.data;
       if (inflight.has(cKey)) return inflight.get(cKey);
     }
-    if (options.auth !== false) {
-      const token = getStoredToken();
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-    }
+    if (requestToken) headers['Authorization'] = 'Bearer ' + requestToken;
 
     const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     const timeoutMs = options.timeoutMs || cfg.requestTimeout || 15000;
@@ -141,11 +139,16 @@
       setRequestActivity(-1);
 
       if (response.status === 401) {
-        try { global.dispatchEvent(new CustomEvent(EVENTO_SESION_EXPIRADA)); } catch (e) { /* entornos sin CustomEvent */ }
+        if (requestToken && getStoredToken() === requestToken) {
+          try { global.dispatchEvent(new CustomEvent(EVENTO_SESION_EXPIRADA)); } catch (e) { /* entornos sin CustomEvent */ }
+        }
         throw new ApiError('unauthorized', 'Your session expired. Please sign in again.', 401);
       }
 
       let data = null;
+      if (isGet && options.auth !== false && getStoredToken() !== requestToken) {
+        throw new ApiError('stale-session', 'Your session changed. Please try again.', null);
+      }
       const raw = await response.text();
       if (raw) {
         try { data = JSON.parse(raw); }
@@ -189,6 +192,50 @@
 
   function requestEndpoint(name, params, options) {
     return apiRequest(endpointPath(name, params), options);
+  }
+
+  const selfWrites = new Map();
+  let selfWriteToken;
+  function selfWrite(id, payload, submitting) {
+    if (!submitting && payload !== undefined) payload = JSON.parse(JSON.stringify(payload));
+    const token = getStoredToken();
+    if (token !== selfWriteToken) {
+      selfWrites.clear();
+      selfWriteToken = token;
+    }
+    const key = String(id);
+    let state = selfWrites.get(key);
+    if (!state) {
+      state = { tail: Promise.resolve(), phase: 'open', error: null };
+      selfWrites.set(key, state);
+    }
+    if (state.phase !== 'open') {
+      return Promise.reject(new ApiError('conflict', 'This evaluation is being submitted or needs its status checked before further changes.', 409));
+    }
+    // Close admission synchronously; saves already admitted finish before submit.
+    if (submitting) state.phase = 'submitting';
+    const operation = state.tail.then(async () => {
+      if (getStoredToken() !== token) throw new ApiError('stale-session', 'Your session changed. Please try again.');
+      if (state.phase === 'uncertain' || (submitting && state.error)) throw state.error;
+      const result = await requestEndpoint(submitting ? 'submitSelf' : 'saveSelfDraft', { evaluationId: id }, {
+        method: submitting ? 'POST' : 'PUT', ...(submitting ? {} : { body: payload }), timeoutMs: 12000
+      });
+      if (submitting && (!result || result.success !== true)) {
+        throw new ApiError('parse', 'Submission was not confirmed. Check the evaluation status before trying again.');
+      }
+      state.error = null;
+      if (submitting) state.phase = 'completed';
+      clearReadCache();
+      return result;
+    }).catch(error => {
+      state.error = error;
+      // A dropped response does not prove that the server stopped writing.
+      if (['network', 'timeout', 'parse'].includes(error.tipo) || error.status >= 500) state.phase = 'uncertain';
+      else if (submitting) state.phase = 'open';
+      throw error;
+    });
+    state.tail = operation.catch(() => {});
+    return operation;
   }
 
   function unavailableEndpoint(name) {
@@ -238,8 +285,8 @@
     async signFeedbackAsEmployee(feedbackId, payload) { const r=await requestEndpoint('signFeedbackAsEmployee', { feedbackId }, { method: 'POST', body: payload, timeoutMs: 30000 }); clearReadCache(); return r; },
 
     async initializeMyEvaluation() { const r=await requestEndpoint('initializeMyEvaluation', null, { method: 'POST' }); clearReadCache('/ic-admin/evaluations/'); return r; },
-    async saveSelfDraft(id, payload) { const r=await requestEndpoint('saveSelfDraft', { evaluationId:id }, { method: 'PUT', body: payload, timeoutMs: 12000 }); clearReadCache('/ic-admin/evaluations/'); return r; },
-    async submitSelf(id) { const r=await requestEndpoint('submitSelf', { evaluationId:id }, { method: 'POST', timeoutMs: 12000 }); clearReadCache(); return r; },
+    saveSelfDraft(id, payload) { return selfWrite(id, payload, false); },
+    submitSelf(id) { return selfWrite(id, undefined, true); },
     async saveLeaderDraft(id, payload) { const r=await requestEndpoint('saveLeaderDraft', { evaluationId:id }, { method: 'PUT', body: payload, timeoutMs: 30000 }); clearReadCache(); return r; },
     async submitLeader(id) { const r=await requestEndpoint('submitLeader', { evaluationId:id }, { method: 'POST', timeoutMs: 30000 }); clearReadCache(); return r; },
 

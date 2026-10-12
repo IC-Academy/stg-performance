@@ -89,20 +89,23 @@
     el.classList.add('workflow-nav-has-action');
   }
 
+  function hasSession() { return !!(global.EDDAuth && global.EDDAuth.getSession && global.EDDAuth.getSession()); }
+  let leaderRetryAfter = 0;
+  let adminRetryAfter = 0;
   let leaderCache = null;
   async function getLeaderTeam(force) {
-    if (!API || typeof API.leaderTeam !== 'function') return null;
+    if (!hasSession() || Date.now() < leaderRetryAfter || !API || typeof API.leaderTeam !== 'function') return null;
     if (leaderCache && !force && Date.now() - leaderCache.at < 15000) return leaderCache.data;
     try {
       const raw = await API.leaderTeam(!!force);
       const data = raw && raw.data ? raw.data : raw;
       leaderCache = { at: Date.now(), data };
       return data;
-    } catch (_) { return null; }
+    } catch (err) { leaderRetryAfter = Date.now() + (err && (err.status === 401 || err.tipo === 'unauthorized') ? 60000 : 30000); return null; }
   }
 
   async function updateLeaderNotifications() {
-    if (location.hash.indexOf('/lider/') === -1) return;
+    if (!hasSession() || location.hash.indexOf('/lider/') === -1) return;
     const data = await getLeaderTeam(false);
     const team = data && Array.isArray(data.team) ? data.team : [];
     const pending = team.filter(needsLeaderEvaluation).length;
@@ -140,7 +143,7 @@
   }
 
   async function repairLeaderQueues() {
-    if (location.hash.indexOf('/lider/pendientes') === -1 && location.hash.indexOf('/lider/firmas') === -1) return;
+    if (!hasSession() || (location.hash.indexOf('/lider/pendientes') === -1 && location.hash.indexOf('/lider/firmas') === -1)) return;
     const data = await getLeaderTeam(false);
     const team = data && Array.isArray(data.team) ? data.team : [];
     const isPending = location.hash.indexOf('/lider/pendientes') !== -1;
@@ -161,18 +164,18 @@
 
   let adminCache = null;
   async function getAdminCalibration(force) {
-    if (!API || typeof API.adminCalibration !== 'function') return null;
+    if (!hasSession() || Date.now() < adminRetryAfter || !API || typeof API.adminCalibration !== 'function') return null;
     if (adminCache && !force && Date.now() - adminCache.at < 15000) return adminCache.data;
     try {
       const raw = await API.adminCalibration(!!force);
       const data = raw && raw.data ? raw.data : raw;
       adminCache = { at: Date.now(), data };
       return data;
-    } catch (_) { return null; }
+    } catch (err) { adminRetryAfter = Date.now() + (err && (err.status === 401 || err.tipo === 'unauthorized') ? 60000 : 30000); return null; }
   }
 
   async function updateAdminNotifications() {
-    if (location.hash.indexOf('/admin/') === -1) return;
+    if (!hasSession() || location.hash.indexOf('/admin/') === -1) return;
     const data = await getAdminCalibration(false);
     const pending = data && Array.isArray(data.pending) ? data.pending : [];
     setNavBadge(findNavItem(/^Calibration/i), pending.length, 'attention');
@@ -318,6 +321,7 @@
   const observer = new MutationObserver(schedule);
   observer.observe(document.documentElement,{childList:true,subtree:true});
   global.addEventListener('hashchange',()=>{leaderCache=null;adminCache=null;setTimeout(schedule,30);});
+  global.addEventListener('edd:session-expired',()=>{leaderCache=null;adminCache=null;leaderRetryAfter=Date.now()+60000;adminRetryAfter=Date.now()+60000;});
   document.addEventListener('DOMContentLoaded',schedule);
   setTimeout(schedule,100);
   setTimeout(schedule,600);
