@@ -194,6 +194,50 @@
     return apiRequest(endpointPath(name, params), options);
   }
 
+  const selfWrites = new Map();
+  let selfWriteToken;
+  function selfWrite(id, payload, submitting) {
+    if (!submitting && payload !== undefined) payload = JSON.parse(JSON.stringify(payload));
+    const token = getStoredToken();
+    if (token !== selfWriteToken) {
+      selfWrites.clear();
+      selfWriteToken = token;
+    }
+    const key = String(id);
+    let state = selfWrites.get(key);
+    if (!state) {
+      state = { tail: Promise.resolve(), phase: 'open', error: null };
+      selfWrites.set(key, state);
+    }
+    if (state.phase !== 'open') {
+      return Promise.reject(new ApiError('conflict', 'This evaluation is being submitted or needs its status checked before further changes.', 409));
+    }
+    // Close admission synchronously; saves already admitted finish before submit.
+    if (submitting) state.phase = 'submitting';
+    const operation = state.tail.then(async () => {
+      if (getStoredToken() !== token) throw new ApiError('stale-session', 'Your session changed. Please try again.');
+      if (state.phase === 'uncertain' || (submitting && state.error)) throw state.error;
+      const result = await requestEndpoint(submitting ? 'submitSelf' : 'saveSelfDraft', { evaluationId: id }, {
+        method: submitting ? 'POST' : 'PUT', ...(submitting ? {} : { body: payload }), timeoutMs: 12000
+      });
+      if (submitting && (!result || result.success !== true)) {
+        throw new ApiError('parse', 'Submission was not confirmed. Check the evaluation status before trying again.');
+      }
+      state.error = null;
+      if (submitting) state.phase = 'completed';
+      clearReadCache();
+      return result;
+    }).catch(error => {
+      state.error = error;
+      // A dropped response does not prove that the server stopped writing.
+      if (['network', 'timeout', 'parse'].includes(error.tipo) || error.status >= 500) state.phase = 'uncertain';
+      else if (submitting) state.phase = 'open';
+      throw error;
+    });
+    state.tail = operation.catch(() => {});
+    return operation;
+  }
+
   function unavailableEndpoint(name) {
     try { endpointPath(name); }
     catch (error) { return Promise.reject(error); }
@@ -241,8 +285,8 @@
     async signFeedbackAsEmployee(feedbackId, payload) { const r=await requestEndpoint('signFeedbackAsEmployee', { feedbackId }, { method: 'POST', body: payload, timeoutMs: 30000 }); clearReadCache(); return r; },
 
     async initializeMyEvaluation() { const r=await requestEndpoint('initializeMyEvaluation', null, { method: 'POST' }); clearReadCache('/ic-admin/evaluations/'); return r; },
-    async saveSelfDraft(id, payload) { const r=await requestEndpoint('saveSelfDraft', { evaluationId:id }, { method: 'PUT', body: payload, timeoutMs: 12000 }); clearReadCache('/ic-admin/evaluations/'); return r; },
-    async submitSelf(id) { const r=await requestEndpoint('submitSelf', { evaluationId:id }, { method: 'POST', timeoutMs: 12000 }); clearReadCache(); return r; },
+    saveSelfDraft(id, payload) { return selfWrite(id, payload, false); },
+    submitSelf(id) { return selfWrite(id, undefined, true); },
     async saveLeaderDraft(id, payload) { const r=await requestEndpoint('saveLeaderDraft', { evaluationId:id }, { method: 'PUT', body: payload, timeoutMs: 30000 }); clearReadCache(); return r; },
     async submitLeader(id) { const r=await requestEndpoint('submitLeader', { evaluationId:id }, { method: 'POST', timeoutMs: 30000 }); clearReadCache(); return r; },
 
