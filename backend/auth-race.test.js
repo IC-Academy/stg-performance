@@ -88,7 +88,7 @@ test('cached reads and inflight requests are isolated between sessions', async (
   responses[1].resolve({status: 200, ok: true, text: async () => JSON.stringify({team: ['account-b']})});
   await b;
   responses[0].resolve({status: 200, ok: true, text: async () => JSON.stringify({team: ['account-a']})});
-  await a;
+  await assert.rejects(a, error => error.tipo === 'stale-session');
   const cached = await r.context.EDDApi.leaderTeam();
   assert.equal(cached.team[0], 'account-b');
   assert.equal(responses.length, 2);

@@ -146,6 +146,9 @@
       }
 
       let data = null;
+      if (isGet && options.auth !== false && getStoredToken() !== requestToken) {
+        throw new ApiError('stale-session', 'Your session changed. Please try again.', null);
+      }
       const raw = await response.text();
       if (raw) {
         try { data = JSON.parse(raw); }
