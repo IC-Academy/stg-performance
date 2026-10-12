@@ -97,17 +97,15 @@
 
     const headers = { 'Content-Type': 'application/json' };
     const isGet = method === 'GET';
-    const cKey = cacheKey(endpoint);
+    const requestToken = options.auth !== false ? getStoredToken() : null;
+    const cKey = cacheKey(endpoint) + ':' + JSON.stringify(requestToken);
     const cacheMs = isGet ? Number(options.cacheMs || 0) : 0;
     if (cacheMs > 0 && !options.forceRefresh) {
       const cached = readCache.get(cKey);
       if (cached && (Date.now() - cached.at) < cacheMs) return cached.data;
       if (inflight.has(cKey)) return inflight.get(cKey);
     }
-    if (options.auth !== false) {
-      const token = getStoredToken();
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-    }
+    if (requestToken) headers['Authorization'] = 'Bearer ' + requestToken;
 
     const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     const timeoutMs = options.timeoutMs || cfg.requestTimeout || 15000;
@@ -141,7 +139,9 @@
       setRequestActivity(-1);
 
       if (response.status === 401) {
-        try { global.dispatchEvent(new CustomEvent(EVENTO_SESION_EXPIRADA)); } catch (e) { /* entornos sin CustomEvent */ }
+        if (requestToken && getStoredToken() === requestToken) {
+          try { global.dispatchEvent(new CustomEvent(EVENTO_SESION_EXPIRADA)); } catch (e) { /* entornos sin CustomEvent */ }
+        }
         throw new ApiError('unauthorized', 'Your session expired. Please sign in again.', 401);
       }
 

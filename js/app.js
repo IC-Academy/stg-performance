@@ -858,8 +858,22 @@
     const local = getOrCreateLocalEvaluation(me.empleado, liderId, 'autoevaluacion', backendId, state.remote.mine.evaluation.state || state.remote.mine.evaluation.selfState);
     (d.answers || []).filter(a => !/l[ií]der|leader/i.test(String(a.evaluator || a.evaluador || ''))).forEach(a => mapRemoteAnswerToLocal(local.id, a));
     hydrateObjectives(local.id, d.objectives || [], false);
-    syncBackendResultsFromDetail(d, local, null);
-    hydrateRemoteFeedback(d, me.empleado, state.periodo.id, S.getEvaluacion(me.empleado, state.periodo.id, 'lider'));
+    const visible = !!(d.access && d.access.leaderResultsVisible && d.access.resultsReleased);
+    const leaderData = visible ? (d.leaderFeedback || null) : null;
+    const leaderEv = visible ? getOrCreateLocalEvaluation(me.empleado, liderId, 'lider', (d.evaluation && d.evaluation.leaderEvaluationId) || '', (d.evaluation && d.evaluation.leaderStatus) || '') : null;
+    if (leaderEv) {
+      (d.answers || []).filter(a => /l[ií]der|leader/i.test(String(a.evaluator || a.evaluador || ''))).forEach(a => mapRemoteAnswerToLocal(leaderEv.id, a));
+      if (leaderData) {
+        leaderEv.fortalezas = leaderData.strengths || '';
+        leaderEv.oportunidadesDesarrollo = leaderData.developmentOpportunities || '';
+        leaderEv.debilidadesBrechas = leaderData.gaps || '';
+        leaderEv.riesgosAtencion = leaderData.risks || '';
+        leaderEv.comentarios = leaderData.leaderSummary || '';
+        S.persist();
+      }
+    }
+    syncBackendResultsFromDetail(d, local, leaderEv);
+    if (visible) hydrateRemoteFeedback(d, me.empleado, state.periodo.id, leaderEv);
   }
   function selfDraftPayload(localEvalId, backendId) {
     const ev = S.load().evaluaciones.find(e => e.id === localEvalId) || {};
@@ -1117,6 +1131,9 @@
     state.user = session ? aplicarPerfilSeleccionado(A.getAppUser(session)) : null;
 
     if (!state.user) {
+      if (location.hash !== '#/') {
+        history.replaceState(history.state, '', location.pathname + location.search + '#/');
+      }
       state.remote = { ready: false, loading: false, error: null, me: null, mine: null, detail: null, detailLoading: false, team: null, dashboard: null, lastSync: null };
       // Si había sesión activa y ya no la hay (y no fue por un logout manual
       // que ya limpió el aviso), asumimos que expiró y lo mostramos en login.
@@ -3717,6 +3734,9 @@
           await A.verifyCode(numeroEmpleado, password);
         }
         const appUser = A.getAppUser();
+        if (!appUser || !appUser.empleado) {
+          throw new global.EDDApi.ApiError('unauthorized', 'Unable to establish your session. Please request a new code.');
+        }
         limpiarPerfil(appUser);
         state.user = aplicarPerfilSeleccionado(appUser);
         S.addAudit(appUser.nombre, 'Sign in', 'usuarios', appUser.empleado, null, appUser.perfil);

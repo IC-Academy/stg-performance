@@ -30,8 +30,9 @@ Airtable y correo permanecen en n8n y nunca deben agregarse al repositorio.
 | Calibration | `HUIM6QuC2zegotXp` | `GET /ic-admin/admin/calibration`, `GET /ic-admin/admin/dashboard`, `PUT /ic-admin/admin/calibration/:evaluationId`, `POST /ic-admin/admin/calibration/:evaluationId/complete` |
 
 La configuracion central vive en `js/config.js`. Las etapas posteriores a
-Calibration estan deshabilitadas mediante `features.postCalibrationEnabled` y
-no tienen rutas configuradas.
+Calibration estan habilitadas mediante `features.postCalibrationEnabled`:
+liberacion de resultados, reunion, acuerdos y firmas usan las rutas ICA
+configuradas. Su autorizacion debe verificarse en el backend.
 
 La capa visual y los textos visibles usan la variante English-only. Los valores
 heredados que n8n/Airtable conservan en espanol se traducen al mostrarse sin
@@ -40,5 +41,5 @@ alterar sus contratos ni los datos persistidos.
 ## Limites de esta etapa
 
 El detalle de evaluacion y el dashboard administrativo se sirven desde los
-workflows ICA autorizados. Las etapas posteriores a Calibration siguen
-deshabilitadas y no tienen rutas configuradas.
+workflows ICA autorizados. Los resultados del lider y la retroalimentacion
+propia solo se hidratan cuando el backend confirma su visibilidad y liberacion.
