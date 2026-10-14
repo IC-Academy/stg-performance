@@ -3,6 +3,7 @@
 
   const App = global.App;
   const API = global.EDDApi;
+  const teamState = global.EDDLeaderTeamState;
   if (!App) return;
 
   function txt(el) { return (el && el.textContent ? el.textContent : '').replace(/\s+/g, ' ').trim(); }
@@ -10,11 +11,7 @@
   function lower(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
 
   function needsLeaderEvaluation(item) {
-    const self = lower(item.selfStatus || item.autoEvaluationStatus || item.processState);
-    const leader = lower(item.leaderStatus || item.managerStatus);
-    const selfReady = /submitted|completad|completed|enviad|pendiente de l[ií]der|pending manager|self_submitted/.test(self);
-    const leaderDone = /leader_submitted|submitted|completad|completed|enviad|closed|cerrad/.test(leader);
-    return !!(selfReady && !leaderDone && (item.evaluationId || item.id));
+    return teamState.needsLeaderEvaluation(item);
   }
 
   function needsLeaderSignature(item) {
@@ -124,9 +121,10 @@
 
   function leaderRowHtml(x, mode) {
     const id = x.employeeId || x.id || '';
-    const evId = x.evaluationId || x.id || '';
-    const self = x.selfStatus || '—';
-    const leader = /leader_submitted/i.test(String(x.leaderStatus || '')) ? 'Evaluation submitted' : (x.leaderStatus || '—');
+    const evId = teamState.evaluationId(x);
+    const self = teamState.valueOf(teamState.selfStatus(x)) || '—';
+    const leaderState = teamState.valueOf(teamState.leaderStatus(x));
+    const leader = /leader_submitted/i.test(String(leaderState)) ? 'Evaluation submitted' : (leaderState || '—');
     const processRaw = lower(x.processState || '');
     let process = x.processState || '—';
     if (/leader_submitted|pending_calibration/.test(processRaw)) process = 'Pending calibration';
