@@ -1182,6 +1182,21 @@
       return;
     }
 
+    // STG pilot: show illustrative My Team data directly on the landing dashboard
+    // for the three pre-authorized reviewers, even when their live team is empty.
+    // This is a read-only iframe; it never mutates employee evaluations.
+    const pilotReviewers = ['255989', '261009', '248098'];
+    if (page === 'dashboard' && ['lider', 'admin'].includes(area) &&
+        pilotReviewers.includes(String(state.user.empleado))) {
+      body += '<section class="card" aria-label="My Team demo preview" style="margin-top:22px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+        '<div><h2 style="margin-bottom:6px">My Team · Interactive Demo</h2>' +
+        '<p class="muted" style="margin-top:0">Illustrative hierarchy, self-assessment vs. manager scores, and 9-Box placement. Demo only — no actual evaluation data.</p></div>' +
+        '<a class="btn btn-outline" href="#/' + area + '/team-calibration-demo">Open full demo →</a></div>' +
+        '<iframe title="My Team interactive demo, illustrative data" src="team-calibration-preview.html" ' +
+        'style="display:block;width:100%;height:1050px;border:1px solid #d7e2ed;border-radius:10px;background:#f6f8fb" loading="lazy"></iframe></section>';
+    }
+
     root.innerHTML = renderHeader(area, page) + `<main class="container">${body}</main>` + renderFooter();
     bindGlobal();
     translateDOM(root);
