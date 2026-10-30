@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IC ADMIN | My Team — Live Read-only</title>
+<link rel="stylesheet" href="css/styles.css">
+<style>
+body{background:#f4f7fa;color:#152b44;font-family:Arial,sans-serif}.shell{max-width:1150px;margin:auto;padding:25px}
+.hero{background:#102d53;color:white;padding:26px;border-radius:12px}.hero h1{color:white;margin:0 0 9px}
+.panel{background:white;border:1px solid #d9e4ed;border-radius:11px;padding:20px;margin:16px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px}.stat{background:#f2f6fb;padding:14px;border-radius:9px}
+.stat strong{display:block;font-size:25px;color:#16365e}.layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:17px}
+button{cursor:pointer;border:1px solid #a9bed2;background:white;border-radius:7px;padding:9px 12px;color:#12345b}
+button:hover{background:#e8f1fb}.person{display:block;width:100%;margin:7px 0;text-align:left}
+.small{font-size:12px;color:#66788c}.notice{background:#fff3d3;border-left:4px solid #dbaa25;padding:13px;margin:15px 0}
+.error{background:#feecec;border-color:#bc5252}.row{padding:12px 0;border-bottom:1px solid #e5eaf0}
+.boxes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;max-width:470px}
+.box{border:1px solid #c5d4e4;padding:13px 5px;text-align:center;border-radius:7px;font-size:12px;background:#f7f9fc}
+.box.chosen{background:#d9eee5;border-color:#3b9b6c}.hidden{display:none}.badge{font-size:11px;border-radius:12px;padding:4px 8px;background:#e6edf6}
+pre{white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:750px){.layout{grid-template-columns:1fr}}
+</style></head><body>
+<main class="shell"><section class="hero"><div style="font-size:12px;opacity:.8">IC ADMIN · STAGING · AUTHENTICATED READ-ONLY</div><h1>My Team &amp; Team Calibration</h1><div>Reporting hierarchy, evaluation differences and preliminary 9-Box outcomes.</div></section>
+<div id="status" class="notice">Loading authorized team data…</div><section id="content" class="hidden">
+<div class="grid" id="stats"></div><div class="layout"><aside class="panel"><h3>Reporting hierarchy</h3><div id="hierarchy"></div></aside>
+<section class="panel"><h3>Team calibration</h3><div id="team"></div><div id="detail"></div></section></div></section>
+<div class="small">Manager identity and employee access are validated by n8n from the authenticated session. No records are written. Missing scores are displayed as “—”, never zero. The system excludes continuity-risk data.</div>
+<p><a href="team-calibration-preview.html">Open illustrative demo instead</a></p></main>
+<script src="js/config.js"></script><script src="js/api.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const htmlEscape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=value=>value===null||value===undefined||value===''?'—':(typeof value==='number'?Number(value.toFixed(2)):htmlEscape(value));
+const score=o=>o?fmt(o.globalResult5)+' / 5':'—';
+const errors={unauthorized:'Session expired. Sign in again.',forbidden:'Your account cannot access this workspace.',no_active_period:'Exactly one active evaluation period is required.',not_in_structure:'The selected employee is outside your reporting structure.',invalid_employee_id:'Invalid employee ID.'};
+const status=(s,error=false)=>{$('status').className='notice'+(error?' error':'');$('status').textContent=s};
+const request=async(key,query='')=>{
+ const endpoint=window.APP_CONFIG.apiEndpoints[key];
+ const response=await window.EDDApi.apiRequest(endpoint+query,{cacheMs:0,timeoutMs:30000});
+ if(!response||response.success!==true)throw new Error((response&&errors[response.code])||(response&&response.message)||'Unexpected API response');
+ return response.data;
+};
+let hierarchy,overview,selected=null;
+function boxes(o){
+ if(!o||!o.nineBox||!Number.isInteger(Number(o.nineBox.quadrant)))return '<span class="small">9-Box pending</span>';
+ let q=Number(o.nineBox.quadrant);
+ const names=['Black Spot','Sowing','Seed','Potted','Sun','Harvest','Water','Heart','Green Spot'];
+ let out='<div class="boxes">';
+ for(let att=3;att>=1;att--)for(let perf=1;perf<=3;perf++){let n=(perf-1)*3+att;out+='<div class="box '+(n===q?'chosen':'')+'">'+htmlEscape(names[n-1])+'<br>#'+n+(n===q?' ●':'')+'</div>';}
+ return out+'</div>';
+}
+function render(){
+ const s=hierarchy.summary||{},c=overview.summary||{};
+ $('stats').innerHTML=[['Direct reports',s.directReports],['Indirect reports',s.indirectReports],['Total members',s.totalMembers],['Leader evaluations completed',c.leaderCompleted],['Calibration pending',c.calibrationPending]].map(([n,v])=>'<div class="stat"><span class="small">'+n+'</span><strong>'+fmt(v)+'</strong></div>').join('');
+ const members=hierarchy.members||[];
+ $('hierarchy').innerHTML='<div><b>'+htmlEscape(hierarchy.manager?.name||'Manager')+'</b></div>'+
+ members.map(m=>'<div class="row" style="padding-left:'+Math.min(6,Number(m.level)||0)*11+'px"><button class="person" data-id="'+htmlEscape(m.employeeId)+'">'+htmlEscape(m.name||m.employeeId)+' <span class="badge">'+htmlEscape(m.relation||'')+'</span></button><div class="small">'+htmlEscape(m.position||'')+'</div></div>').join('');
+ $('team').innerHTML=(overview.items||[]).map(i=>'<div class="row"><button class="person" data-id="'+htmlEscape(i.employeeId)+'"><b>'+htmlEscape(i.name||i.employeeId)+'</b> · '+htmlEscape(i.processState||'')+'</button><div class="small">Self: '+fmt(i.selfResult5)+' / 5 · Manager: '+fmt(i.leaderResult5)+' / 5 · Gap: '+fmt(i.gap?.difference5)+' · '+htmlEscape(i.gap?.classification||'—')+' · Calibration: '+htmlEscape(i.calibrationStatus||'—')+'</div></div>').join('')||'<p>No team evaluations are available.</p>';
+ $('content').classList.remove('hidden');
+ document.querySelectorAll('[data-id]').forEach(b=>b.addEventListener('click',()=>detail(b.dataset.id)));
+}
+async function detail(id){
+ if(!/^[A-Za-z0-9_-]{1,64}$/.test(id))return status('Invalid employee ID',true);
+ if(!hierarchy.members.some(m=>String(m.employeeId)===id))return status('Employee outside current team.',true);
+ status('Loading authorized evaluation detail…');
+ try{
+  const d=await request('managerTeamEvaluation','?employeeId='+encodeURIComponent(id));
+  $('detail').innerHTML='<hr><h3>'+htmlEscape(d.employee?.name||id)+'</h3><p class="small">'+htmlEscape(d.employee?.position||'')+' · Evaluated by '+htmlEscape(d.evaluator?.name||'—')+'</p>'+
+  '<div class="grid"><div class="stat">Self-assessment<strong>'+score(d.self)+'</strong></div><div class="stat">Manager evaluation<strong>'+score(d.leader)+'</strong></div><div class="stat">Difference (manager − self)<strong>'+fmt(d.gap?.global?.difference5)+'</strong></div></div>'+
+  '<h4>Self-assessment 9-Box</h4>'+boxes(d.self)+'<h4>Manager 9-Box</h4>'+boxes(d.leader)+
+  '<h4>Competencies</h4>'+(d.competencies||[]).map(x=>'<div class="row"><b>'+htmlEscape(x.name)+'</b><div class="small">Self: '+fmt(x.selfValue)+' · Manager: '+fmt(x.leaderValue)+'</div></div>').join('')+
+  '<h4>Objectives</h4>'+(d.objectives||[]).map(x=>'<div class="row"><b>'+htmlEscape(x.description)+'</b><div class="small">Self compliance: '+fmt(x.self?.compliancePercent)+' · Manager validated: '+fmt(x.leader?.leaderValidatedPercent)+'</div></div>').join('')+
+  '<p class="small">View only. Preliminary results are not a calibration action.</p>';
+  status('Authenticated data loaded. Read-only.');
+ }catch(e){status(errors[e.detalle?.code]||e.message||'Unable to load detail.',true)}
+}
+async function init(){
+ try{
+  [hierarchy,overview]=await Promise.all([request('managerHierarchy'),request('managerTeamCalibration')]);
+  render();status('Authenticated data loaded. Read-only.');
+ }catch(e){status(errors[e.detalle?.code]||e.message||'The manager endpoints are not yet published. The illustrative demo remains available.',true)}
+}
+init();
+})();
+</script></body></html>
