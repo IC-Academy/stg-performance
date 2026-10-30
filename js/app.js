@@ -1170,7 +1170,11 @@
     }
 
     let body = '';
-    if (area === 'colaborador') body = renderColaborador(page);
+    // STG-only visual pilot for named reviewers; no production calibration data.
+    if (page === 'team-calibration-demo' && ['255989','261009','248098'].includes(String(state.user.empleado))) {
+      body = '<section class="card"><h2>My Team — Manager Preview</h2><p class="muted">Read-only demonstration. Illustrative scores only; no evaluations are changed.</p><iframe title="Team Calibration visual demonstration" src="team-calibration-preview.html" style="display:block;width:100%;height:1050px;border:1px solid #d7e2ed;border-radius:10px;background:#f6f8fb" loading="eager"></iframe></section>';
+    }
+    else if (area === 'colaborador') body = renderColaborador(page);
     else if (area === 'lider') body = renderLider(page, param);
     else if (area === 'admin') body = renderAdmin(page, param);
     else {
@@ -1198,6 +1202,9 @@
       if (perfilesDisponibles(u).includes('colaborador')) tabs.unshift(['mi-inicio', 'My evaluation']);
     } else {
       tabs = [['dashboard', 'Dashboard'], ['calibracion', 'Calibration'], ['9box', '9-Box Matrix'], ['usuarios', 'Users'], ['config', 'Settings']];
+    }
+    if (['255989','261009','248098'].includes(String(u.empleado))) {
+      tabs.push(['team-calibration-demo','My Team · Demo']);
     }
     const retroPendiente = u.perfil === 'colaborador' && state.periodo && (() => { const cal=S.getCalibracion(u.empleado, state.periodo.id); return !!(cal && cal.retroHabilitada && !cal.aceptacionColaborador); })();
     const firmasPendientesLider = u.perfil === 'lider' && state.periodo ? S.getColaboradoresDeLider(u.empleado).filter((c) => { const cal = S.getCalibracion(c.empleado, state.periodo.id); return !!(cal && cal.acuerdosLiberados && !cal.firmaLider); }).length : 0;
