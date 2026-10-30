@@ -1192,7 +1192,8 @@
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
         '<div><h2 style="margin-bottom:6px">My Team · Interactive Demo</h2>' +
         '<p class="muted" style="margin-top:0">Illustrative hierarchy, self-assessment vs. manager scores, and 9-Box placement. Demo only — no actual evaluation data.</p></div>' +
-        '<a class="btn btn-outline" href="#/' + area + '/team-calibration-demo">Open full demo →</a></div>' +
+        '<a class="btn btn-outline" href="team-calibration-live.html" target="_blank" rel="noopener">Open authenticated team data ↗</a> ' +
+        '<a class="btn btn-outline" href="#/' + area + '/team-calibration-demo">Open illustrative demo →</a></div>' +
         '<iframe title="My Team interactive demo, illustrative data" src="team-calibration-preview.html" ' +
         'style="display:block;width:100%;height:1050px;border:1px solid #d7e2ed;border-radius:10px;background:#f6f8fb" loading="lazy"></iframe></section>';
     }
