@@ -1815,18 +1815,31 @@
     if (!v || v.enabled !== true || v.completed !== true || !Array.isArray(v.competencies)) return null;
     return v.competencies.find(x => String(x && x.competencyId) === String(competenciaId)) || null;
   }
-  async function loadSelfAssessmentVisibility(leaderLocalId, evaluationBackendId) {
+  async function loadSelfAssessmentVisibility(leaderLocalId, leaderBackendId, selfBackendId) {
     if (!state.remote.selfVisibility) state.remote.selfVisibility = {};
     delete state.remote.selfVisibility[leaderLocalId];
-    if (!global.EDDApi || typeof global.EDDApi.leaderSelfAssessment !== 'function' || !evaluationBackendId) return;
-    try {
-      const d = apiData(await global.EDDApi.leaderSelfAssessment(evaluationBackendId, true));
-      const v = d && d.selfAssessmentVisibility;
-      if (v && v.enabled === true) state.remote.selfVisibility[leaderLocalId] = {
-        enabled:true, completed:v.completed === true,
-        competencies:v.completed === true && Array.isArray(v.competencies) ? v.competencies : []
-      };
-    } catch (_) { /* Failure closed: no self-assessment shown. */ }
+    if (!global.EDDApi || typeof global.EDDApi.leaderSelfAssessment !== 'function') return;
+    // The authorized endpoint can resolve an evaluation from the leader record.
+    // For legacy records, retry the associated self-evaluation ID only on 404.
+    const ids = [...new Set([leaderBackendId, selfBackendId].filter(Boolean))];
+    for (const id of ids) {
+      try {
+        const d = apiData(await global.EDDApi.leaderSelfAssessment(id, true));
+        const v = d && d.selfAssessmentVisibility;
+        if (v && v.enabled === true && v.completed === true && Array.isArray(v.competencies)) {
+          state.remote.selfVisibility[leaderLocalId] = {enabled:true,completed:true,competencies:v.competencies};
+          return;
+        }
+        // Denials and incomplete self-evaluations must not trigger alternate lookup.
+        if (v && (v.enabled === false || v.completed === false)) return;
+        console.warn('[EDD staging] Self-assessment response had no authorized competency data.');
+        return;
+      } catch (error) {
+        console.warn('[EDD staging] Self-assessment request failed:', error && error.status, error && error.message);
+        if (error && error.status === 404 && id !== ids[ids.length - 1]) continue;
+        return;
+      }
+    }
   }
   function selfAssessmentPanelHTML(sa) {
     const r = sa.rating, n = Number(r);
@@ -3650,7 +3663,7 @@
         hydrateRemoteFeedback(detail, String(employeeId), state.periodo.id, lev);
         if (auto.estado === D.ESTADOS.COMPLETADA && !(backendMetrics && backendMetrics.selfMetrics)) ensureLocalResultForEvaluation(auto);
         if (lev.estado === D.ESTADOS.COMPLETADA && !(backendMetrics && backendMetrics.leaderMetrics)) ensureLocalResultForEvaluation(lev);
-        await loadSelfAssessmentVisibility(lev.id, selfBackendId);
+        await loadSelfAssessmentVisibility(lev.id, leaderBackendId, selfBackendId);
         state.wizard={seccionIdx:0,evaluacionId:lev.id,tipo:'lider',colaboradorId:String(employeeId),liderId:String(state.user.empleado)};
         navigate('#/lider/evaluar/' + employeeId);
       } catch (err) { showNotice(err.message || 'Unable to load the evaluation.','warning'); } finally { state.remote.loadingEvaluationId = null; }
