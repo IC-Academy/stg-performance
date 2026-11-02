@@ -1192,7 +1192,7 @@
         '<div><h2 style="margin-bottom:6px">My Team &amp; Team Calibration</h2>' +
         '<p class="muted" style="margin-top:0">Live, read-only hierarchy and evaluations from your authenticated reporting structure.</p></div>' +
         '<a class="btn btn-outline" href="team-calibration-live.html">Open full view ↗</a></div>' +
-        '<iframe title="My Team and Team Calibration - authenticated data" src="team-calibration-live.html?v=20261102" ' +
+        '<iframe title="My Team and Team Calibration - authenticated data" src="team-calibration-live.html?v=20261102-selection-v2" ' +
         'style="display:block;width:100%;height:1100px;border:1px solid #d7e2ed;border-radius:10px;background:#f6f8fb" loading="eager"></iframe></section>';
     }
 
