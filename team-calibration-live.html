@@ -22,7 +22,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:750px){.layout{
 <div class="grid" id="stats"></div><div class="layout"><aside class="panel"><h3>Reporting hierarchy</h3><div id="hierarchy"></div></aside>
 <section class="panel"><h3>Team calibration</h3><div id="team"></div><div id="detail"></div></section></div></section>
 <div class="small">Manager identity and employee access are validated by n8n from the authenticated session. No records are written. Missing scores are displayed as “—”, never zero. The system excludes continuity-risk data.</div>
-<p><a href="team-calibration-preview.html">Open illustrative demo instead</a></p></main>
+<p><a href="index.html#/lider/dashboard">Return to the signed-in dashboard</a></p></main>
 <script src="js/config.js"></script><script src="js/api.js"></script>
 <script>
 (function(){
@@ -30,8 +30,8 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:750px){.layout{
 const $=id=>document.getElementById(id);
 const htmlEscape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=value=>value===null||value===undefined||value===''?'—':(typeof value==='number'?Number(value.toFixed(2)):htmlEscape(value));
-const score=o=>o?fmt(o.globalResult5)+' / 5':'—';
-const errors={unauthorized:'Session expired. Sign in again.',forbidden:'Your account cannot access this workspace.',no_active_period:'Exactly one active evaluation period is required.',not_in_structure:'The selected employee is outside your reporting structure.',invalid_employee_id:'Invalid employee ID.'};
+const score=o=>o&&o.globalResult5!=null?fmt(o.globalResult5)+' / 5':'—';
+const errors={unauthorized:'No valid session was received by this page. Open it from your signed-in staging tab (same tab), or sign in again.',forbidden:'Your account cannot access this workspace.',no_active_period:'Exactly one active evaluation period is required.',not_in_structure:'The selected employee is outside your reporting structure.',invalid_employee_id:'Invalid employee ID.'};
 const status=(s,error=false)=>{$('status').className='notice'+(error?' error':'');$('status').textContent=s};
 const request=async(key,query='')=>{
  const endpoint=window.APP_CONFIG.apiEndpoints[key];
