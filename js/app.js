@@ -690,8 +690,15 @@
       const desc = o.description || o.descripcion || o.name || '';
       const goal = o.goal ?? o.meta ?? '';
       const result = o.actualResult ?? o.resultado ?? '';
-      const pctSelf = o.employeeCompletionPercent ?? o.completionPercent ?? o.cumplimiento ?? '';
-      const scoreSelf = o.employeeScore ?? o.calificacionColaborador ?? o.score ?? o.calificacion ?? '';
+      // Legacy drafts may contain goal/actualResult but omit derived completion and rating.
+      // Recalculate only missing self metrics; never override a value supplied by backend.
+      const backendPctSelf = o.employeeCompletionPercent ?? o.completionPercent ?? o.cumplimiento;
+      const pctSelf = backendPctSelf === null || backendPctSelf === undefined || backendPctSelf === ''
+        ? cumplimientoAutomatico(goal, result) : backendPctSelf;
+      const backendScoreSelf = o.employeeScore ?? o.calificacionColaborador ?? o.score ?? o.calificacion;
+      const derivedScore = pctSelf === '' ? null : C.calificacionPorCumplimiento(Number(pctSelf));
+      const scoreSelf = backendScoreSelf === null || backendScoreSelf === undefined || backendScoreSelf === ''
+        ? (derivedScore ?? '') : backendScoreSelf;
       const pctLeader = o.leaderValidatedPercent ?? o.porcentajeValidadoLider ?? '';
       const scoreLeader = o.leaderScore ?? o.calificacionLider ?? '';
       S.saveObjetivo(localEvalId, idx, desc, result, leaderMode ? (scoreLeader || '') : (scoreSelf || ''), {
