@@ -1629,3 +1629,14 @@ body.edd-request-active::before {
     visibility:hidden;
   }
 }
+
+/* v45 - employee self-assessment shown only after backend authorization */
+.self-assessment-panel{background:#eef5fc;border:1px solid #cfe0f3;border-left:4px solid #1f5fa8;border-radius:8px;padding:10px 14px;margin:10px 0 8px;color:#173455}
+.self-assessment-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.self-assessment-head strong{font-size:.86rem}
+.self-assessment-tag{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#1f5fa8;background:#fff;border:1px solid #cfe0f3;border-radius:999px;padding:1px 8px}
+.self-assessment-rating{font-size:.9rem;margin-bottom:4px}
+.self-assessment-stars{color:#1f5fa8;letter-spacing:1px}
+.self-assessment-label{display:block;font-size:.74rem;font-weight:700;margin-top:2px}
+.self-assessment-comment{margin:2px 0 0;font-style:italic;white-space:pre-wrap;overflow-wrap:anywhere}
+.self-assessment-comment.empty{color:#5b6b7f}
