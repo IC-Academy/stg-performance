@@ -489,7 +489,7 @@
     jerarquiasFiltros: {},
     nineboxSel: null,
     nineboxSelEmpleado: null,
-    remote: { ready: false, loading: false, error: null, me: null, mine: null, detail: null, detailLoading: false, detailError: null, detailRetry: 0, team: null, dashboard: null, calibration: null, lastSync: null, leaderSubmitting: false, leaderSubmitSuccess: false, calibrationSaving: false, calibrationCompleting: false, calibrationReleasing: false },
+    remote: { ready: false, loading: false, error: null, me: null, mine: null, detail: null, detailLoading: false, detailError: null, detailRetry: 0, team: null, dashboard: null, calibration: null, lastSync: null, leaderSubmitting: false, leaderSubmitSuccess: false, calibrationSaving: false, calibrationCompleting: false, calibrationReleasing: false, selfVisibility: {} },
     // --- Estado del login de dos pasos (beta 3) ---
     login: {
       paso: 'solicitar',   // 'solicitar' | 'validar'
@@ -1809,7 +1809,41 @@
     </div>`;
   }
 
+
+  function selfAssessmentFor(evaluacionId, competenciaId) {
+    const v = state.remote.selfVisibility && state.remote.selfVisibility[evaluacionId];
+    if (!v || v.enabled !== true || v.completed !== true || !Array.isArray(v.competencies)) return null;
+    return v.competencies.find(x => String(x && x.competencyId) === String(competenciaId)) || null;
+  }
+  async function loadSelfAssessmentVisibility(leaderLocalId, evaluationBackendId) {
+    if (!state.remote.selfVisibility) state.remote.selfVisibility = {};
+    delete state.remote.selfVisibility[leaderLocalId];
+    if (!global.EDDApi || typeof global.EDDApi.leaderSelfAssessment !== 'function' || !evaluationBackendId) return;
+    try {
+      const d = apiData(await global.EDDApi.leaderSelfAssessment(evaluationBackendId, true));
+      const v = d && d.selfAssessmentVisibility;
+      if (v && v.enabled === true) state.remote.selfVisibility[leaderLocalId] = {
+        enabled:true, completed:v.completed === true,
+        competencies:v.completed === true && Array.isArray(v.competencies) ? v.competencies : []
+      };
+    } catch (_) { /* Failure closed: no self-assessment shown. */ }
+  }
+  function selfAssessmentPanelHTML(sa) {
+    const r = sa.rating, n = Number(r);
+    const rated = r !== null && r !== undefined && r !== '' && r !== 'N/A' && Number.isFinite(n) && n >= 1 && n <= 5;
+    const stars = rated ? '<span class="self-assessment-stars" aria-hidden="true">' + '★'.repeat(Math.round(n)) + '☆'.repeat(5-Math.round(n)) + '</span> <strong>' + esc(String(n)) + '/5</strong>'
+      : (String(r).toUpperCase() === 'N/A' ? '<strong>N/A</strong> <span class="muted">Not applicable</span>' : '<span class="muted">Not rated</span>');
+    const comment = sa.comment == null || String(sa.comment).trim() === ''
+      ? '<p class="self-assessment-comment empty">No self-assessment comment provided.</p>'
+      : '<p class="self-assessment-comment">"' + esc(String(sa.comment)) + '"</p>';
+    return '<div class="self-assessment-panel" role="note" aria-label="Employee self-assessment (read only)">' +
+      '<div class="self-assessment-head"><strong>Employee Self-Assessment</strong><span class="self-assessment-tag">Read only</span></div>' +
+      '<div class="self-assessment-rating">' + stars + '</div>' +
+      '<span class="self-assessment-label">Employee comment:</span>' + comment + '</div>';
+  }
+
   function renderCompetenciaCard(evaluacionId, seccion, c, respuesta, soloLectura) {
+    const sa = selfAssessmentFor(evaluacionId, c.id);
     const valor = respuesta ? respuesta.valor : '';
     const comentario = respuesta ? respuesta.comentario : '';
     const groupName = 'rate_' + evaluacionId + '_' + c.id;
@@ -1823,16 +1857,17 @@
       <div class="competency-topline">
         <div class="competency-title-block"><strong>${esc(c.nombre)}</strong><span class="peso-tag">${c.peso}%</span></div>
         <div class="competency-rate competency-rate-fixed">
-          <label>${esHerramientas ? 'Tools average' : 'Rating'}</label>
+          <label>${esHerramientas ? 'Tools average' : (sa ? 'Manager evaluation' : 'Rating')}</label>
           ${esHerramientas ? `<div class="tools-average ${toolAvg===null?'empty':''}"><strong>${toolAvg===null?'—':f1(toolAvg)}</strong><span>/ 5</span><small>${toolValues.length} tool${toolValues.length===1?'':'s'} rated</small></div>` : ratingWidget(groupName, valor, onchangeJs, soloLectura, false)}
         </div>
       </div>
+      ${sa ? selfAssessmentPanelHTML(sa) : ''}
       ${esHerramientas ? `<p class="tools-intro">Rate only the tools that apply to your role. Select N/A when you do not use the tool directly or only consume information or reports generated from it. This is an interim catalog pending validation by Technology.</p>
         <div class="tools-rating-grid">${HERRAMIENTAS_B2.map(([id,nombre]) => {
           const g='tool_'+evaluacionId+'_'+id; const v=tools[id]??''; const change=`App.rateHerramienta('${evaluacionId}','${seccion}','${id}',this.value)`;
           return `<div class="tool-rating-row"><div><strong>${esc(nombre)}</strong></div>${ratingWidget(g,v,change,soloLectura,true,true)}</div>`;
         }).join('')}</div>` : `<ul class="conductas conductas-below">${c.conductas.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`}
-      ${!soloLectura ? `<div class="validation-message" aria-live="polite">${esHerramientas?'Rate at least one applicable tool to continue.':'Select a rating to continue.'}</div><textarea class="comentario-box" placeholder="Comment (optional)" onchange="App.comentar('${evaluacionId}','${seccion}','${c.id}',this.value)">${esc(comentario)}</textarea>` : (comentario ? `<div class="comentario-lectura">${esc(comentario)}</div>` : '')}
+      ${!soloLectura ? `<div class="validation-message" aria-live="polite">${esHerramientas?'Rate at least one applicable tool to continue.':'Select a rating to continue.'}</div><textarea class="comentario-box" placeholder="${sa ? 'Manager comment (optional)' : 'Comment (optional)'}" onchange="App.comentar('${evaluacionId}','${seccion}','${c.id}',this.value)">${esc(comentario)}</textarea>` : (comentario ? `<div class="comentario-lectura">${esc(comentario)}</div>` : '')}
     </div>`;
   }
 
@@ -2595,7 +2630,7 @@
         <div><span class="label">Tenure</span><span class="value">${esc(col.antiguedad)}</span></div>
         <div><span class="label">Period</span><span class="value">${esc(state.periodo.nombre)}</span></div>
       </div>
-      <p class="alert alert-info">The employee's self-assessment will remain hidden until you submit your evaluation.</p>
+      ${state.remote.selfVisibility && state.remote.selfVisibility[ev.id] && state.remote.selfVisibility[ev.id].completed === true ? '<p class="alert alert-info">The employee self-assessment ratings and comments are read only and do not affect your evaluation.</p>' : '<p class="alert alert-info">The employee self-assessment will remain hidden until you submit your evaluation.</p>'}
     </div>
     <section class="premium-evaluation-page premium-leader-evaluation">
       <div class="premium-progress-head"><div><span>Evaluation progress</span><div class="progress"><div class="progress-bar" style="width:${progresoLider}%"></div></div></div><strong>${progresoLider}%</strong></div>
@@ -3615,6 +3650,7 @@
         hydrateRemoteFeedback(detail, String(employeeId), state.periodo.id, lev);
         if (auto.estado === D.ESTADOS.COMPLETADA && !(backendMetrics && backendMetrics.selfMetrics)) ensureLocalResultForEvaluation(auto);
         if (lev.estado === D.ESTADOS.COMPLETADA && !(backendMetrics && backendMetrics.leaderMetrics)) ensureLocalResultForEvaluation(lev);
+        await loadSelfAssessmentVisibility(lev.id, selfBackendId);
         state.wizard={seccionIdx:0,evaluacionId:lev.id,tipo:'lider',colaboradorId:String(employeeId),liderId:String(state.user.empleado)};
         navigate('#/lider/evaluar/' + employeeId);
       } catch (err) { showNotice(err.message || 'Unable to load the evaluation.','warning'); } finally { state.remote.loadingEvaluationId = null; }
